@@ -1,0 +1,53 @@
+#!/bin/sh
+set -e
+
+# No HEAD yet (initial commit): diff --cached is unavailable, run the full suite
+if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
+  exec uv run python -m unittest discover -s test
+fi
+
+candidates=""
+uncovered=""
+has_source=0
+
+# -M shows only the new path for renames; -z safely handles paths with spaces
+while IFS= read -r path; do
+  case "$path" in
+    *.py)
+      case "$path" in
+        test/*)
+          # A deleted test file cannot be run, so skip it; otherwise add it as a candidate
+          if [ -f "$path" ]; then
+            candidates="$candidates $path"
+          fi
+          ;;
+        *)
+          has_source=1
+          base=$(basename "$path" .py)
+          if [ "$base" = "__init__" ]; then
+            base=$(basename "$(dirname "$path")")
+          fi
+          t="test/test_${base}.py"
+          if [ -f "$t" ]; then
+            candidates="$candidates $t"
+          else
+            uncovered="$uncovered $path"
+          fi
+          ;;
+      esac
+      ;;
+  esac
+done <<EOF
+$(git diff --cached --name-only -z -M | tr '\0' '\n')
+EOF
+
+# Commits unrelated to tests (docs/config/non *.py files) pass through
+if [ -z "$candidates" ]; then
+  echo "skip"
+  exit 0
+fi
+
+# test/test_enhance.py -> test.test_enhance
+modules=$(printf '%s\n' $candidates | sed 's#/#.#g; s/\.py$//')
+echo "running related tests: $modules"
+exec uv run python -m unittest $modules

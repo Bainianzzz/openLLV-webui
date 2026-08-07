@@ -11,7 +11,12 @@ dist/
 venv/
 env/
 
+# Node / husky
+node_modules/
+.husky/_
+
 # IDE / OS
 .idea/
 .vscode/
+.zed/
 .DS_Store

@@ -1,0 +1,12 @@
+{
+  "name": "openllv-webui",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "test": "uv run python -m unittest discover -s test"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
