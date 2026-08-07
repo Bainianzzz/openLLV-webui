@@ -1,6 +1,6 @@
 ---
 name: sqlalchemy
-description: SQLAlchemy 2.x usage for database connections and basic CRUD in this project, following Gradio's official "Connecting to a Database" guide. Use when creating engines, reading database content into pandas DataFrames for Gradio components, defining ORM models, or writing create/read/update/delete queries.
+description: SQLAlchemy 2.x usage for database connections and basic CRUD in this project. Use when creating engines, reading database content into pandas DataFrames for Gradio components, defining ORM models, or writing create/read/update/delete queries.
 ---
 
 # SQLAlchemy: Database Connection and Basic CRUD

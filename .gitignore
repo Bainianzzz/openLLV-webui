@@ -11,6 +11,9 @@ dist/
 venv/
 env/
 
+# Runtime data (SQLite database, uploaded and generated images)
+data/
+
 # Node / husky
 node_modules/
 .husky/_
