@@ -14,6 +14,7 @@
 ## webui 项目结构
 
 - `inference` webui 服务方法
+  - `model`：SQLAlchemy 模型定义
 - `ui` webui 界面，每个包的 **init**.py 负责组装页面组件
   - `ui/<domain>` : 各业务邻域的子组件模块
 - `test` : webui 测试用例，不要擅自更新，测试文件/测试方法命名必须以 `test_` 开头，class 命名必须以 `Test` 开头
