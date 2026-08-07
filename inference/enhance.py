@@ -1,55 +1,70 @@
 """Inference glue between the Gradio UI and openLLV enhancement methods."""
 
-import json
 from collections.abc import Mapping
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, Literal
 
-import numpy as np
 import openLLV as llv
 from PIL import Image
 
-
-def available_enhancers() -> dict[str, Any]:
-    """Return the enhancement-related groups from ``llv.list_available()``."""
-    available = llv.list_available()
-    return {
-        "algorithms": available["algorithms"],
-        "models": available["models"],
-    }
-
-
-def _to_pil(result: Any) -> Image.Image:
-    """Convert a numpy array or PIL image to a PIL RGB image for Gradio."""
-    if isinstance(result, Image.Image):
-        return result.convert("RGB")
-    if isinstance(result, np.ndarray):
-        return Image.fromarray(result).convert("RGB")
-    raise TypeError("Unexpected enhancement output type")
+from . import INPUT_DIR, OUTPUT_DIR, SessionLocal
+from .model import DeepLearningTask, TraditionalTask
+from .utils import save_image, to_pil
 
 
 def enhance(
     method: str,
     image: Image.Image | None,
+    task_cls: Literal["traditional", "deepLearning"],
     model_path: str | None = None,
     params: Mapping[str, Any] = {},
 ) -> Image.Image:
-    """Enhance one image through the method selected in the web UI."""
+    """Enhance one image through the method selected in the web UI.
+
+    ``task_cls`` selects the table the run is recorded into. A row is inserted
+    when the run starts (status ``pending``) and updated with the result
+    when it finishes (``success``/``failed``).
+    """
     if image is None:
         raise ValueError("Please upload an image first.")
+
+    task_model = TraditionalTask if task_cls == "traditional" else DeepLearningTask
+    record = {
+        "method": method or model_path,
+        "input_path": save_image(image, INPUT_DIR),
+    }
+    if task_model is TraditionalTask:
+        record["params"] = dict(params)
+    else:
+        record["model_path"] = model_path
+
+    with SessionLocal() as session:
+        task = task_model(**record)
+        session.add(task)
+        session.commit()
+        task_id = task.id
 
     try:
         enhanced, _ = llv.predict(method or model_path, image, save=False, **params)
     except Exception as exc:
+        with SessionLocal() as session:
+            task = session.get(task_model, task_id)
+            if task is None:
+                raise RuntimeError(f"Task {task_id} not found") from exc
+            task.status = "failed"
+            task.error = str(exc)
+            task.finish_at = datetime.now(timezone.utc)
+            session.commit()
         raise ValueError(f"Enhancement failed: {exc}") from exc
-    return _to_pil(enhanced)
 
+    output = to_pil(enhanced)
+    with SessionLocal() as session:
+        task = session.get(task_model, task_id)
+        if task is None:
+            raise RuntimeError(f"Task {task_id} not found")
+        task.status = "success"
+        task.output_path = save_image(output, OUTPUT_DIR)
+        task.finish_at = datetime.now(timezone.utc)
+        session.commit()
 
-def parse_params(text: str | None) -> dict[str, Any]:
-    """Parse a JSON object from the textarea into a parameter dict."""
-    if not text or not text.strip():
-        return {}
-    try:
-        params = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Parameters are not valid JSON: {exc.msg}") from exc
-    return params
+    return output

@@ -5,7 +5,7 @@
     "dev": "uv run gradio app.py",
     "app": "uv run python app.py",
     "prepare": "husky",
-    "test": "uv run python -m unittest discover -s test",
+    "test": "uv run pytest",
     "docs": "sh scripts/sync-docs.sh"
   },
   "devDependencies": {

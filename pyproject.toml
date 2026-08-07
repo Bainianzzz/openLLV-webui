@@ -12,3 +12,12 @@ dependencies = [
 
 [tool.uv.sources]
 openllv = { git = "https://github.com/glory-wan/openLLV.git" }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+pythonpath = ["."]

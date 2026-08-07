@@ -9,9 +9,9 @@ from inference.enhance import enhance
 from . import example_images, image_display, method_choices
 
 
-def build_deep_learning_section(enhancers: dict) -> dict:
+def build_deep_learning_section(models: list) -> dict:
     """Create the deep-learning model enhancement components."""
-    model_choices = method_choices(enhancers["models"])
+    model_choices = method_choices(models)
     image, output = image_display()
     with gr.Row():
         with gr.Column():
@@ -32,7 +32,9 @@ def build_deep_learning_section(enhancers: dict) -> dict:
     enhance_btn = gr.Button("Enhance", variant="primary")
 
     enhance_btn.click(
-        fn=lambda method, image, model_file: enhance(method, image, model_file),
+        fn=lambda method, image, model_file: enhance(
+            method, image, "deepLearning", model_path=model_file
+        ),
         inputs=[method, image, model_file],
         outputs=[output],
     )

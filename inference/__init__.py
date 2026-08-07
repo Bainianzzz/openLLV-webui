@@ -6,7 +6,6 @@ import yaml
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .enhance import available_enhancers, enhance
 from .model import Base
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -30,14 +29,21 @@ _config = load_config()
 DB_PATH = _resolve_path(_config["storage"]["db_path"])
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
+INPUT_DIR = DB_PATH.parent / "input"
+OUTPUT_DIR = DB_PATH.parent / "output"
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
 def init_db() -> None:
-    """Create the database directory and task tables at startup."""
+    """Create the data directories and task tables at startup."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(engine)
 
 
-__all__ = ["available_enhancers", "enhance", "init_db"]
+from .enhance import enhance
+
+__all__ = ["enhance", "init_db"]

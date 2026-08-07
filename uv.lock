@@ -2538,12 +2538,20 @@ dependencies = [
     { name = "sqlalchemy" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "gradio", specifier = ">=6.22.0" },
     { name = "openllv", git = "https://github.com/glory-wan/openLLV.git" },
     { name = "sqlalchemy", specifier = ">=2.0.51" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.1" }]
 
 [[package]]
 name = "orjson"
