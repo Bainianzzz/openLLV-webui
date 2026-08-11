@@ -7,7 +7,17 @@ requires-python = ">=3.10"
 dependencies = [
     "gradio>=6.22.0",
     "openllv",
+    "sqlalchemy>=2.0.51",
 ]
 
 [tool.uv.sources]
 openllv = { git = "https://github.com/glory-wan/openLLV.git" }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+pythonpath = ["."]

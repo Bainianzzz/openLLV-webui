@@ -1,0 +1,5 @@
+# openLLV WebUI configuration
+
+storage:
+  # location of the SQLite database file (app.db)
+  db_path: data/app.db

@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import gradio as gr
-
-from inference.enhance import available_enhancers
+import openLLV as llv
 
 
 def method_choices(rows) -> list[str]:
@@ -48,18 +47,22 @@ def image_display() -> tuple[gr.Image, gr.Image]:
 def build_enhance() -> dict:
     """Assemble the traditional and deep-learning sections as tabs."""
     from .deep_learning import build_deep_learning_section
+    from .manage import build_manage_section
     from .traditional import build_traditional_section
 
-    enhancers = available_enhancers()
+    available = llv.list_available()
     with gr.Tabs():
         with gr.Tab("Traditional Algorithm"):
-            traditional = build_traditional_section(enhancers)
+            traditional = build_traditional_section(available["algorithms"])
         with gr.Tab("Deep Learning Model"):
-            deep_learning = build_deep_learning_section(enhancers)
+            deep_learning = build_deep_learning_section(available["models"])
+        with gr.Tab("Records"):
+            manage = build_manage_section()
 
     return {
         "traditional": traditional,
         "deep_learning": deep_learning,
+        "manage": manage,
     }
 
 
