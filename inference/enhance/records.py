@@ -7,6 +7,8 @@ from datetime import datetime
 
 from sqlalchemy import select
 
+_SEARCH_FIELDS = ("method", "status", "input_path", "output_path", "error")
+
 from .. import SessionLocal
 from ..model import DeepLearningTask, TraditionalTask
 
@@ -16,13 +18,19 @@ def _fmt(value: datetime | None) -> str:
     return value.strftime("%Y-%m-%d %H:%M:%S") if value else ""
 
 
-def list_records(task_type: str = "traditional") -> list[list]:
-    """Return the display rows for one task type, newest first.
+def list_records(
+    task_type: str = "traditional",
+    search: str = "",
+    search_field: str = "method",
+    limit: int = 50,
+) -> list[list]:
+    """Return the most recent ``limit`` records matching ``search``.
 
     ``task_type`` selects the table ("traditional"/"deepLearning"); any
-    other value raises ``ValueError``. The type-specific field
-    (``params``/``model_path``) sits at index 3 so the UI can align it with
-    its own column headers.
+    other value raises ``ValueError``. ``search`` matches the column picked
+    by ``search_field`` (default "method"), case-insensitively. The
+    type-specific field (``params``/``model_path``) sits at index 3 so the
+    UI can align it with its own column headers.
     """
     if task_type == "traditional":
         model = TraditionalTask
@@ -33,9 +41,17 @@ def list_records(task_type: str = "traditional") -> list[list]:
             f"Unknown task type: {task_type!r}; expected 'traditional' or 'deepLearning'"
         )
 
+    stmt = select(model).order_by(model.id.desc())
+    if search:
+        if search_field not in _SEARCH_FIELDS:
+            raise ValueError(
+                f"Unknown search field: {search_field!r}; expected one of {_SEARCH_FIELDS}"
+            )
+        stmt = stmt.where(getattr(model, search_field).like(f"%{search}%"))
+    stmt = stmt.limit(limit)
+
     rows: list[list] = []
     with SessionLocal() as session:
-        stmt = select(model).order_by(model.id.desc())
         for task in session.scalars(stmt):
             if isinstance(task, TraditionalTask):
                 extra = json.dumps(task.params, ensure_ascii=False)

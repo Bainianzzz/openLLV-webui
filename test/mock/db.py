@@ -54,16 +54,61 @@ def mock_db() -> Generator[FakeSession, None, None]:
         yield session
 
 
+_SEARCH_FIELDS = ("method", "status", "input_path", "output_path", "error")
+
+
 class QuerySession(FakeSession):
-    """In-memory session that returns preset model rows from ``scalars``."""
+    """In-memory session simulating ``scalars`` query semantics.
+
+    Rows without an id get sequential auto-incremented ids on setup, then
+    are ordered by ``id`` descending, filtered by the LIKE pattern in the
+    statement's where clause, and truncated to the statement limit,
+    mirroring what ``list_records`` queries against the real engine.
+    """
 
     def __init__(self, rows: list) -> None:
         super().__init__()
         self.rows = rows
+        self._assign_ids()
+
+    def _assign_ids(self) -> None:
+        """Give rows created without an id sequential primary keys."""
+        next_id = (
+            max((task.id for task in self.rows if task.id is not None), default=0) + 1
+        )
+        for task in self.rows:
+            if task.id is None:
+                task.id = next_id
+                next_id += 1
 
     def scalars(self, stmt):
-        """Return the preset rows, ignoring the select statement."""
-        return iter(self.rows)
+        rows = sorted(self.rows, key=lambda task: task.id, reverse=True)
+        term = self._search_term(stmt)
+        if term:
+            rows = [row for row in rows if term.lower() in self._cells(row)]
+        limit = stmt._limit_clause.value if stmt._limit_clause is not None else None
+        if limit is not None:
+            rows = rows[:limit]
+        return iter(rows)
+
+    @staticmethod
+    def _search_term(stmt):
+        """Extract the first LIKE pattern from the statement's where clauses."""
+        for criterion in stmt._where_criteria:
+            clauses = getattr(criterion, "clauses", None)
+            if clauses is None:  # single-column where, not wrapped in or_()
+                clauses = [criterion]
+            for clause in clauses:
+                pattern = getattr(getattr(clause, "right", None), "value", None)
+                if isinstance(pattern, str):
+                    return pattern.strip("%")
+        return None
+
+    @staticmethod
+    def _cells(task) -> str:
+        """Join the searchable field values of a task for matching."""
+        values = (str(getattr(task, field, "") or "") for field in _SEARCH_FIELDS)
+        return " ".join(values).lower()
 
 
 @contextmanager

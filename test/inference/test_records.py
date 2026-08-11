@@ -10,7 +10,7 @@ from inference.model import DeepLearningTask, TraditionalTask
 from test.mock.db import mock_records_db
 
 DEEP_LEARNING_ROW = {
-    "id": 2,
+    "id": 1,
     "status": "failed",
     "method": "ZeroDCE",
     "model_path": "models/zero_dce.pt",
@@ -41,7 +41,7 @@ def _from_display(value: str) -> datetime | None:
 
 def _traditional_task(**overrides) -> TraditionalTask:
     values = {
-        "id": TRADITIONAL_ROW["id"],
+        "id": None,  # auto-incremented by the mock
         "status": TRADITIONAL_ROW["status"],
         "method": TRADITIONAL_ROW["method"],
         "params": json.loads(TRADITIONAL_ROW["params"]),
@@ -57,7 +57,7 @@ def _traditional_task(**overrides) -> TraditionalTask:
 
 def _deep_learning_task(**overrides) -> DeepLearningTask:
     values = {
-        "id": DEEP_LEARNING_ROW["id"],
+        "id": None,  # auto-incremented by the mock
         "status": DEEP_LEARNING_ROW["status"],
         "method": DEEP_LEARNING_ROW["method"],
         "model_path": DEEP_LEARNING_ROW["model_path"],
@@ -72,11 +72,35 @@ def _deep_learning_task(**overrides) -> DeepLearningTask:
 
 
 def test_list_records_traditional() -> None:
-    """Traditional records expose ``params`` as the type-specific column."""
-    with mock_records_db([_traditional_task()]):
+    """Traditional records are newest-first and limited to the 50 most recent."""
+    rows = [_traditional_task() for _ in range(60)]
+    with mock_records_db(rows):
         result = list_records("traditional")
 
-    assert result == [list(TRADITIONAL_ROW.values())]
+    assert len(result) == 50
+    assert result[0][0] == 60
+    assert result[-1][0] == 11
+    assert result[0][3] == '{"gamma": 0.6}'
+
+
+def test_list_records_search() -> None:
+    """Search filters by the selected column, defaulting to method."""
+    with mock_records_db(
+        [
+            _traditional_task(error="boom"),
+            _traditional_task(method="LIME"),
+        ]
+    ):
+        default_field = list_records("traditional", search="LIME")
+        error_field = list_records("traditional", search="boom", search_field="error")
+
+    method_match = dict(TRADITIONAL_ROW)
+    method_match.update({"id": 2, "method": "LIME"})
+    assert default_field == [list(method_match.values())]
+
+    error_match = dict(TRADITIONAL_ROW)
+    error_match["error"] = "boom"
+    assert error_field == [list(error_match.values())]
 
 
 def test_list_records_deep_learning() -> None:

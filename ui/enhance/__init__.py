@@ -56,7 +56,7 @@ def build_enhance() -> dict:
             traditional = build_traditional_section(available["algorithms"])
         with gr.Tab("Deep Learning Model"):
             deep_learning = build_deep_learning_section(available["models"])
-        with gr.Tab("Manage Records"):
+        with gr.Tab("Records"):
             manage = build_manage_section()
 
     return {
