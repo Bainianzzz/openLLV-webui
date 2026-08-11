@@ -27,18 +27,18 @@ def mock_db() -> Generator[FakeSession, None, None]:
 
 @contextmanager
 def mock_train_db() -> Generator[FakeSession, None, None]:
-    """Patch the ``SessionLocal`` used by the training core with a fake session.
+    """Patch the ``SessionLocal`` used by the training runner with a fake session.
 
-    The training core (``_run``) lives in the ``inference.train.train`` module,
-    so the patch targets that module directly: the package-level ``train``
-    attribute is the service module, not the training function.
+    The training runner (``run``) lives in the ``inference.train.run`` module,
+    so the patch targets that module directly: it is called from the
+    background thread started by ``train.start``.
 
     Yields the ``FakeSession`` so tests can inspect the recorded task
     (``session.task``) after running ``start``/``pause``/``result``.
     """
     session = FakeSession()
-    train_module = import_module("inference.train.train")
-    with mock.patch.object(train_module, "SessionLocal", return_value=session):
+    run_module = import_module("inference.train.run")
+    with mock.patch.object(run_module, "SessionLocal", return_value=session):
         yield session
 
 

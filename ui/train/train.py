@@ -20,13 +20,15 @@ def _run_training(
     lr: float,
     resize: int,
     device: str,
+    output_dir: str,
 ) -> Iterator[str]:
     """Start one training session and stream its outcome.
 
     Training itself runs on a background thread, so the first yield reports
     the start immediately and the second blocks until the session finishes
-    (naturally or through the Stop button). ``dataset`` and ``root_dir`` are
-    recorded with the training record.
+    (naturally or through the Stop button). ``dataset``, ``root_dir``, and
+    ``output_dir`` are recorded with the training record; an empty
+    ``output_dir`` keeps openLLV's default checkpoint location.
     """
     yield start(
         model,
@@ -37,6 +39,7 @@ def _run_training(
         lr,
         resize,
         None if device == "auto" else device,
+        output_dir or None,
     )
     yield result()
 
@@ -68,6 +71,10 @@ def build_training_section(
             value="auto",
             label="Device",
         )
+        output_dir = gr.Textbox(
+            label="Output Dir",
+            placeholder="path/to/checkpoints",
+        )
         with gr.Row():
             train_btn = gr.Button("Train", variant="primary")
             stop_btn = gr.Button("Stop", variant="stop")
@@ -75,7 +82,17 @@ def build_training_section(
 
     train_btn.click(
         fn=_run_training,
-        inputs=[root_dir, dataset, model, epochs, batch_size, lr, resize, device],
+        inputs=[
+            root_dir,
+            dataset,
+            model,
+            epochs,
+            batch_size,
+            lr,
+            resize,
+            device,
+            output_dir,
+        ],
         outputs=[status],
     )
     stop_btn.click(fn=_stop_training, outputs=[status])
@@ -87,6 +104,7 @@ def build_training_section(
         "lr": lr,
         "resize": resize,
         "device": device,
+        "output_dir": output_dir,
         "train_button": train_btn,
         "stop_button": stop_btn,
         "status": status,

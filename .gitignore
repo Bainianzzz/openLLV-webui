@@ -13,9 +13,8 @@ env/
 
 # Runtime data (SQLite database, uploaded and generated images)
 data/
-
-# Downloaded datasets
 datasets/
+checkpoints/
 
 # Node / husky
 node_modules/

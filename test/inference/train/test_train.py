@@ -2,6 +2,7 @@
 
 import threading
 import time
+from pathlib import Path
 from unittest import mock
 
 import openLLV as llv
@@ -33,9 +34,9 @@ def reset_train_state():
     train_module._train_status = None
 
 
-def _start(device: str | None = None) -> str:
+def _start(device: str | None = None, output_dir: str | None = None) -> str:
     """Start training with the shared fixture arguments."""
-    return start(*TRAIN_ARGS, device)
+    return start(*TRAIN_ARGS, device, output_dir)
 
 
 def _blocking_train(entered: threading.Event):
@@ -71,6 +72,8 @@ def test_train_success_records_lifecycle(db_session) -> None:
         lr=1e-4,
         resize=512,
         device=None,
+        output_dir=None,
+        num_workers=0,
     )
     task = db_session.task
     assert task.status == "success"
@@ -82,9 +85,35 @@ def test_train_success_records_lifecycle(db_session) -> None:
     assert task.lr == 1e-4
     assert task.resize == 512
     assert task.device == "auto"  # a None device is recorded as "auto"
-    assert task.checkpoint_dir == "checkpoints/ZeroDCE_CommonDataset"
+    assert Path(task.checkpoint_dir).is_absolute()
+    assert task.checkpoint_dir.endswith("checkpoints/ZeroDCE_CommonDataset")
     assert task.error is None
     assert task.finish_at is not None
+
+
+def test_train_output_dir_forwarded(db_session) -> None:
+    """A user-specified output directory is passed to the trainer."""
+    outcome = {"checkpoint_dir": "checkpoints/custom/checkpoints"}
+
+    with mock.patch.object(llv, "train", return_value=outcome) as train:
+        assert _start(output_dir="/data/checkpoints/custom") == "Training started."
+        assert (
+            result() == "Training finished. Checkpoint: checkpoints/custom/checkpoints"
+        )
+
+    train.assert_called_once_with(
+        "ZeroDCE",
+        root_dir="/data/datasets/common",
+        epochs=10,
+        batch_size=4,
+        lr=1e-4,
+        resize=512,
+        device=None,
+        output_dir="/data/checkpoints/custom",
+        num_workers=0,
+    )
+    assert Path(db_session.task.checkpoint_dir).is_absolute()
+    assert db_session.task.checkpoint_dir.endswith("checkpoints/custom/checkpoints")
 
 
 def test_train_failure_records_error(db_session) -> None:
