@@ -19,5 +19,6 @@ class Base(DeclarativeBase):
 
 
 from .enhance import DeepLearningTask, TraditionalTask
+from .train import TrainingTask
 
-__all__ = ["DeepLearningTask", "TraditionalTask"]
+__all__ = ["DeepLearningTask", "TraditionalTask", "TrainingTask"]

@@ -13,6 +13,7 @@ from . import name_choices
 
 def _run_training(
     root_dir: str,
+    dataset: str,
     model: str,
     epochs: int,
     batch_size: int,
@@ -24,10 +25,12 @@ def _run_training(
 
     Training itself runs on a background thread, so the first yield reports
     the start immediately and the second blocks until the session finishes
-    (naturally or through the Stop button).
+    (naturally or through the Stop button). ``dataset`` and ``root_dir`` are
+    recorded with the training record.
     """
     yield start(
         model,
+        dataset,
         root_dir,
         epochs,
         batch_size,
@@ -43,11 +46,14 @@ def _stop_training() -> str:
     return pause()
 
 
-def build_training_section(root_dir: gr.Textbox, models: list) -> dict:
+def build_training_section(
+    root_dir: gr.Textbox, dataset: gr.Dropdown, models: list
+) -> dict:
     """Create the training components.
 
     ``root_dir`` is the dataset root picked in the dataset-preparation
-    section; hyperparameters can be tuned before starting training.
+    section and ``dataset`` is its name; both are recorded with the training
+    record. Hyperparameters can be tuned before starting training.
     """
     choices = name_choices(models)
 
@@ -69,7 +75,7 @@ def build_training_section(root_dir: gr.Textbox, models: list) -> dict:
 
     train_btn.click(
         fn=_run_training,
-        inputs=[root_dir, model, epochs, batch_size, lr, resize, device],
+        inputs=[root_dir, dataset, model, epochs, batch_size, lr, resize, device],
         outputs=[status],
     )
     stop_btn.click(fn=_stop_training, outputs=[status])

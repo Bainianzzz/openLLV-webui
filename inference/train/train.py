@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import ctypes
 import threading
+from datetime import datetime, timezone
 
 import openLLV as llv
+
+from inference import SessionLocal
+from inference.model import TrainingTask
 
 _lock = threading.Lock()
 _train_thread: threading.Thread | None = None
@@ -14,6 +18,7 @@ _train_status: str | None = None
 
 def start(
     model: str,
+    dataset: str,
     root_dir: str,
     epochs: int,
     batch_size: int,
@@ -26,7 +31,8 @@ def start(
     Training runs on a background daemon thread so the web UI keeps
     responding; the running thread is stored module-wide so that ``pause()``
     can stop it. A ``None`` device lets openLLV pick the best available
-    device.
+    device. A ``TrainingTask`` row is inserted when the run starts (status
+    ``running``) and updated with the outcome when it finishes.
     """
     global _train_thread, _train_status
     with _lock:
@@ -35,7 +41,7 @@ def start(
         _train_status = None
         _train_thread = threading.Thread(
             target=_run,
-            args=(model, root_dir, epochs, batch_size, lr, resize, device),
+            args=(model, dataset, root_dir, epochs, batch_size, lr, resize, device),
             name="openllv-train",
             daemon=True,
         )
@@ -70,6 +76,7 @@ def result() -> str:
 
 def _run(
     model: str,
+    dataset: str,
     root_dir: str,
     epochs: int,
     batch_size: int,
@@ -78,6 +85,22 @@ def _run(
     device: str | None,
 ) -> None:
     global _train_thread, _train_status
+    with SessionLocal() as session:
+        task = TrainingTask(
+            model=model,
+            dataset=dataset,
+            dataset_path=root_dir,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=lr,
+            resize=resize,
+            device=device or "auto",
+            status="running",
+        )
+        session.add(task)
+        session.commit()
+        task_id = task.id
+
     try:
         outcome = llv.train(
             model,
@@ -89,19 +112,41 @@ def _run(
             device=device,
         )
     except KeyboardInterrupt:
-        with _lock:
-            _train_status = "Training stopped."
+        status, message, error, checkpoint = (
+            "stopped",
+            "Training stopped.",
+            None,
+            None,
+        )
     except Exception as exc:  # noqa: BLE001 - any trainer failure becomes a status message
-        with _lock:
-            _train_status = f"Training failed: {exc}"
+        status, message, error, checkpoint = (
+            "failed",
+            f"Training failed: {exc}",
+            str(exc),
+            None,
+        )
     else:
-        with _lock:
-            _train_status = (
-                f"Training finished. Checkpoint: {outcome['checkpoint_dir']}"
-            )
+        status, message, error, checkpoint = (
+            "success",
+            f"Training finished. Checkpoint: {outcome['checkpoint_dir']}",
+            None,
+            outcome["checkpoint_dir"],
+        )
     finally:
         with _lock:
             _train_thread = None
+
+    with SessionLocal() as session:
+        task = session.get(TrainingTask, task_id)
+        if task is not None:
+            task.status = status
+            task.error = error
+            task.checkpoint_dir = checkpoint
+            task.finish_at = datetime.now(timezone.utc)
+            session.commit()
+
+    with _lock:
+        _train_status = message
 
 
 def _raise_keyboard_interrupt(thread: threading.Thread) -> bool:

@@ -50,9 +50,10 @@ class QuerySession(FakeSession):
     mirroring what ``list_records`` queries against the real engine.
     """
 
-    def __init__(self, rows: list) -> None:
+    def __init__(self, rows: list, search_fields: tuple = _SEARCH_FIELDS) -> None:
         super().__init__()
         self.rows = rows
+        self._search_fields = search_fields
         self._assign_ids()
 
     def _assign_ids(self) -> None:
@@ -88,8 +89,7 @@ class QuerySession(FakeSession):
                     return pattern.strip("%")
         return None
 
-    @staticmethod
-    def _cells(task) -> str:
+    def _cells(self, task) -> str:
         """Join the searchable field values of a task for matching."""
-        values = (str(getattr(task, field, "") or "") for field in _SEARCH_FIELDS)
+        values = (str(getattr(task, field, "") or "") for field in self._search_fields)
         return " ".join(values).lower()

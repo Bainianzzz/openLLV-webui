@@ -21,6 +21,7 @@ def init_db() -> None:
 
 from .enhance import batch_enhance, enhance, list_records
 from .train import download_dataset, pause, result, start
+from .train import list_records as list_train_records
 
 __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
     # init
@@ -33,6 +34,7 @@ __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
     "list_records",
     # train
     "download_dataset",
+    "list_train_records",
     "pause",
     "result",
     "start",
