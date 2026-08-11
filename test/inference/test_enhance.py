@@ -1,5 +1,6 @@
 """Tests for ``inference.enhance``."""
 
+from pathlib import Path
 from unittest import mock
 
 import numpy as np
@@ -7,7 +8,7 @@ import openLLV as llv
 import pytest
 from PIL import Image
 
-from inference.enhance import enhance
+from inference.enhance import batch_enhance, enhance
 from test.mock.db import mock_db
 
 
@@ -72,3 +73,27 @@ def test_enhance_failure_records_error(db_session) -> None:
     assert db_session.task.status == "failed"
     assert db_session.task.error == "boom"
     assert db_session.task.finish_at is not None
+
+
+def test_batch_enhance_records_each_image(db_session, tmp_path: Path) -> None:
+    """Batch enhancement records every processed image in the mock database."""
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    for i in range(5):
+        Image.fromarray(np.full((4, 5, 3), i * 40, dtype=np.uint8)).save(
+            input_dir / f"img{i}.png"
+        )
+
+    predicted = np.full((4, 5, 3), 255, dtype=np.uint8)
+    with mock.patch.object(llv, "predict", return_value=(predicted, None)):
+        count = batch_enhance(
+            "Gamma",
+            input_dir,
+            output_dir,
+            "traditional",
+            params={"gamma": 0.6},
+        )
+
+    assert count == 5
+    assert len(db_session.tasks) == 5

@@ -1,16 +1,17 @@
 """Enhancement service: run enhancement tasks and query their records."""
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Literal
 
-import openLLV as llv
 from PIL import Image
 
-from .. import INPUT_DIR, OUTPUT_DIR, SessionLocal
-from ..model import DeepLearningTask, TraditionalTask
-from ..utils import save_image, to_pil
+from .. import INPUT_DIR, OUTPUT_DIR
+from ..utils import TaskPool
+from .enhance import _batch_enhance, _enhance
 from .records import list_records
+
+_IMAGE_SUFFIXES = frozenset({".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"})
 
 
 def enhance(
@@ -26,49 +27,55 @@ def enhance(
     when the run starts (status ``pending``) and updated with the result
     when it finishes (``success``/``failed``).
     """
-    if image is None:
-        raise ValueError("Please upload an image first.")
+    return _enhance(method, image, task_cls, model_path, params, INPUT_DIR, OUTPUT_DIR)
 
-    task_model = TraditionalTask if task_cls == "traditional" else DeepLearningTask
-    record = {
-        "method": method or model_path,
-        "input_path": save_image(image, INPUT_DIR),
-    }
-    if task_model is TraditionalTask:
-        record["params"] = dict(params)
-    else:
-        record["model_path"] = model_path
 
-    with SessionLocal() as session:
-        task = task_model(**record)
-        session.add(task)
-        session.commit()
-        task_id = task.id
+def batch_enhance(
+    method: str,
+    input_dir: str | Path,
+    output_dir: str | Path,
+    task_cls: Literal["traditional", "deepLearning"],
+    model_path: str | None = None,
+    params: Mapping[str, Any] = {},
+    max_workers: int = 4,
+    queue_size: int = 10,
+) -> int:
+    """Enhance every image under ``input_dir`` through a per-run thread pool.
 
+    One enhancement task is created per image and submitted to a ``TaskPool``
+    created for this run; each run is recorded and saved under ``input_dir`` /
+    ``output_dir`` just like ``enhance``. Returns the number of images
+    submitted.
+    """
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
+    images = sorted(
+        path
+        for path in input_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in _IMAGE_SUFFIXES
+    )
+    pool = TaskPool(
+        max_workers=max_workers, queue_size=queue_size, name="batch-enhance"
+    )
     try:
-        enhanced, _ = llv.predict(method or model_path, image, save=False, **params)
-    except Exception as exc:
-        with SessionLocal() as session:
-            task = session.get(task_model, task_id)
-            if task is None:
-                raise RuntimeError(f"Task {task_id} not found") from exc
-            task.status = "failed"
-            task.error = str(exc)
-            task.finish_at = datetime.now(timezone.utc)
-            session.commit()
-        raise ValueError(f"Enhancement failed: {exc}") from exc
-
-    output = to_pil(enhanced)
-    with SessionLocal() as session:
-        task = session.get(task_model, task_id)
-        if task is None:
-            raise RuntimeError(f"Task {task_id} not found")
-        task.status = "success"
-        task.output_path = save_image(output, OUTPUT_DIR)
-        task.finish_at = datetime.now(timezone.utc)
-        session.commit()
-
-    return output
+        futures = [
+            pool.submit(
+                _batch_enhance,
+                method,
+                path,
+                input_dir,
+                output_dir,
+                task_cls,
+                model_path=model_path,
+                params=params,
+            )
+            for path in images
+        ]
+        for future in futures:
+            future.result()
+    finally:
+        pool.stop()
+    return len(futures)
 
 
-__all__ = ["enhance", "list_records"]
+__all__ = ["batch_enhance", "enhance", "list_records"]

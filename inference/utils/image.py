@@ -1,5 +1,6 @@
 """Image utilities for the inference package."""
 
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -8,11 +9,20 @@ import numpy as np
 from PIL import Image
 
 
-def save_image(image: Image.Image, directory: Path) -> str:
-    """Save a PIL image with a timestamped filename and return its path."""
-    directory.mkdir(parents=True, exist_ok=True)
-    filename = f"{datetime.now(timezone.utc):%Y%m%d_%H%M%S_%f}.png"
-    path = directory / filename
+def save_image(
+    image: Image.Image, directory: Path, image_name: str | None = None
+) -> str:
+    """Save a PIL image under a ``YYYY-MM-DD`` subfolder and return its path.
+
+    The file is named ``<unix-timestamp>-<image_name>``; the timestamp uses
+    nanosecond precision, so concurrent saves never collide. When
+    ``image_name`` is omitted it defaults to ``image.png``.
+    """
+    now = datetime.now(timezone.utc)
+    date_dir = directory / now.strftime("%Y-%m-%d")
+    date_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{time.time_ns()}-{image_name or 'image.png'}"
+    path = date_dir / filename
     image.save(path)
     return str(path)
 

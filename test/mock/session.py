@@ -12,6 +12,7 @@ class FakeSession:
 
     def __init__(self) -> None:
         self.task: Any = None
+        self.tasks: list[Any] = []
         self.commits = 0
 
     def __enter__(self) -> Self:
@@ -21,8 +22,13 @@ class FakeSession:
         return None
 
     def add(self, task) -> None:
-        """Record the ORM task instance passed to ``session.add``."""
+        """Record the ORM task instance passed to ``session.add``.
+
+        ``task`` stays the most recently added record, while ``tasks``
+        accumulates every record so batch runs can be inspected.
+        """
         self.task = task
+        self.tasks.append(task)
 
     def commit(self) -> None:
         """Pretend to flush and commit, assigning a primary key."""
