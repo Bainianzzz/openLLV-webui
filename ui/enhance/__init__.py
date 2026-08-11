@@ -47,6 +47,7 @@ def image_display() -> tuple[gr.Image, gr.Image]:
 def build_enhance() -> dict:
     """Assemble the traditional and deep-learning sections as tabs."""
     from .deep_learning import build_deep_learning_section
+    from .manage import build_manage_section
     from .traditional import build_traditional_section
 
     available = llv.list_available()
@@ -55,10 +56,13 @@ def build_enhance() -> dict:
             traditional = build_traditional_section(available["algorithms"])
         with gr.Tab("Deep Learning Model"):
             deep_learning = build_deep_learning_section(available["models"])
+        with gr.Tab("Manage Records"):
+            manage = build_manage_section()
 
     return {
         "traditional": traditional,
         "deep_learning": deep_learning,
+        "manage": manage,
     }
 
 

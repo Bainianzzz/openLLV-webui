@@ -1,4 +1,4 @@
-"""Inference glue between the Gradio UI and openLLV enhancement methods."""
+"""Enhancement service: run enhancement tasks and query their records."""
 
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -7,9 +7,10 @@ from typing import Any, Literal
 import openLLV as llv
 from PIL import Image
 
-from . import INPUT_DIR, OUTPUT_DIR, SessionLocal
-from .model import DeepLearningTask, TraditionalTask
-from .utils import save_image, to_pil
+from .. import INPUT_DIR, OUTPUT_DIR, SessionLocal
+from ..model import DeepLearningTask, TraditionalTask
+from ..utils import save_image, to_pil
+from .records import list_records
 
 
 def enhance(
@@ -68,3 +69,6 @@ def enhance(
         session.commit()
 
     return output
+
+
+__all__ = ["enhance", "list_records"]

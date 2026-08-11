@@ -52,3 +52,30 @@ def mock_db() -> Generator[FakeSession, None, None]:
     enhance_module = import_module("inference.enhance")
     with mock.patch.object(enhance_module, "SessionLocal", return_value=session):
         yield session
+
+
+class QuerySession(FakeSession):
+    """In-memory session that returns preset model rows from ``scalars``."""
+
+    def __init__(self, rows: list) -> None:
+        super().__init__()
+        self.rows = rows
+
+    def scalars(self, stmt):
+        """Return the preset rows, ignoring the select statement."""
+        return iter(self.rows)
+
+
+@contextmanager
+def mock_records_db(rows: list) -> Generator[QuerySession, None, None]:
+    """Patch ``inference.enhance.records.SessionLocal`` with a fake session.
+
+    ``session.scalars`` returns ``rows`` unchanged so tests can verify the
+    ``list_records`` row formatting without a real database.
+
+    Yields the ``QuerySession`` so tests can inspect it if needed.
+    """
+    session = QuerySession(rows)
+    records_module = import_module("inference.enhance.records")
+    with mock.patch.object(records_module, "SessionLocal", return_value=session):
+        yield session

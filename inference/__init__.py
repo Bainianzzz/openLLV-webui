@@ -44,6 +44,6 @@ def init_db() -> None:
     Base.metadata.create_all(engine)
 
 
-from .enhance import enhance
+from .enhance import enhance, list_records
 
-__all__ = ["enhance", "init_db"]
+__all__ = ["enhance", "init_db", "list_records"]
