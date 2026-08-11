@@ -43,5 +43,13 @@ def init_db() -> None:
 
 
 from .enhance import batch_enhance, enhance, list_records
+from .train import download_dataset, train
 
-__all__ = ["batch_enhance", "enhance", "init_db", "list_records"]
+__all__ = [
+    "batch_enhance",
+    "download_dataset",
+    "enhance",
+    "init_db",
+    "list_records",
+    "train",
+]
