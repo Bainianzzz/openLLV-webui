@@ -63,7 +63,9 @@ def _enhance(
         if task is None:
             raise RuntimeError(f"Task {task_id} not found")
         task.status = "success"
-        task.output_path = save_image(output, output_dir)
+        task.output_path = save_image(
+            output, output_dir, image_name=Path(input_dir).name
+        )
         task.finish_at = datetime.now(timezone.utc)
         session.commit()
 

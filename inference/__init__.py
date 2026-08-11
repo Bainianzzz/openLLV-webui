@@ -29,7 +29,6 @@ _config = load_config()
 DB_PATH = _resolve_path(_config["storage"]["db_path"])
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
-INPUT_DIR = DB_PATH.parent / "input"
 OUTPUT_DIR = DB_PATH.parent / "output"
 
 engine = create_engine(DATABASE_URL)
@@ -37,9 +36,8 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 
 def init_db() -> None:
-    """Create the data directories and task tables at startup."""
+    """Create the data directory and task tables at startup."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    INPUT_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(engine)
 

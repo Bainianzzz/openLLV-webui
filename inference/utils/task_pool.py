@@ -19,9 +19,10 @@ class TaskPool:
 
     - At most ``queue_size`` tasks wait in the queue; ``submit`` blocks while
       the queue is full, so pending work stays bounded.
-    - Each task runs under a timeout (per-task, or ``default_timeout``). When a
-      task exceeds the limit, the pool logs the failure and abandons it, so a
-      hung task can never block a worker or its caller forever.
+    - Each task runs under a timeout (per-task, or ``default_timeout``, 30
+      seconds by default). When a task exceeds the limit, the pool logs the
+      failure and abandons it, so a hung task can never block a worker or its
+      caller forever.
     - The timeout counts execution time only, not time spent queued.
 
     Workers are daemon threads, so a stuck task never prevents the process
@@ -32,7 +33,7 @@ class TaskPool:
         self,
         max_workers: int = 4,
         queue_size: int = 10,
-        default_timeout: float | None = None,
+        default_timeout: float | None = 30,
         name: str = "TaskPool",
     ) -> None:
         if max_workers < 1:
