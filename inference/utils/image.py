@@ -14,9 +14,8 @@ def save_image(
 ) -> str:
     """Save a PIL image under a ``YYYY-MM-DD`` subfolder and return its path.
 
-    The file is named ``<unix-timestamp>-<image_name>``; the timestamp uses
-    nanosecond precision, so concurrent saves never collide. When
-    ``image_name`` is omitted it defaults to ``image.png``.
+    The file is named ``<unix-nanosecond-timestamp>-<image_name>`` so
+    concurrent saves never collide. ``image_name`` defaults to ``image.png``.
     """
     now = datetime.now(timezone.utc)
     date_dir = directory / now.strftime("%Y-%m-%d")
