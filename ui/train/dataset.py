@@ -15,7 +15,7 @@ def build_dataset_section(datasets: list) -> dict:
     """
     choices = name_choices(datasets)
 
-    with gr.Row():
+    with gr.Column():
         dataset = gr.Dropdown(choices=choices, value=choices[0], label="Dataset")
         root_dir = gr.Textbox(
             label="Local Path",
