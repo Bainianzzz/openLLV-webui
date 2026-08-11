@@ -8,9 +8,9 @@ from typing import Any, Literal
 import openLLV as llv
 from PIL import Image
 
-from .. import SessionLocal
-from ..model import DeepLearningTask, TraditionalTask
-from ..utils import save_image, to_pil
+from inference import SessionLocal
+from inference.model import DeepLearningTask, TraditionalTask
+from inference.utils import save_image, to_pil
 
 
 def _enhance(

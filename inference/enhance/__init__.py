@@ -6,8 +6,9 @@ from typing import Any, Literal
 
 from PIL import Image
 
-from .. import INPUT_DIR, OUTPUT_DIR
-from ..utils import TaskPool
+from inference import INPUT_DIR, OUTPUT_DIR
+from inference.utils import TaskPool
+
 from .enhance import _batch_enhance, _enhance
 from .records import list_records
 

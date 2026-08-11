@@ -9,8 +9,8 @@ from sqlalchemy import select
 
 _SEARCH_FIELDS = ("method", "status", "input_path", "output_path", "error")
 
-from .. import SessionLocal
-from ..model import DeepLearningTask, TraditionalTask
+from inference import SessionLocal
+from inference.model import DeepLearningTask, TraditionalTask
 
 
 def _fmt(value: datetime | None) -> str:
