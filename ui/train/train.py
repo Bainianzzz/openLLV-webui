@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import gradio as gr
 
-from inference import train
+from inference import pause, result, start
 
 from . import name_choices
 
@@ -17,9 +19,14 @@ def _run_training(
     lr: float,
     resize: int,
     device: str,
-) -> str:
-    """Start one training session and return a short status summary."""
-    return train(
+) -> Iterator[str]:
+    """Start one training session and stream its outcome.
+
+    Training itself runs on a background thread, so the first yield reports
+    the start immediately and the second blocks until the session finishes
+    (naturally or through the Stop button).
+    """
+    yield start(
         model,
         root_dir,
         epochs,
@@ -28,6 +35,12 @@ def _run_training(
         resize,
         None if device == "auto" else device,
     )
+    yield result()
+
+
+def _stop_training() -> str:
+    """Stop the running training session."""
+    return pause()
 
 
 def build_training_section(root_dir: gr.Textbox, models: list) -> dict:
@@ -49,7 +62,9 @@ def build_training_section(root_dir: gr.Textbox, models: list) -> dict:
             value="auto",
             label="Device",
         )
-        train_btn = gr.Button("Train", variant="primary")
+        with gr.Row():
+            train_btn = gr.Button("Train", variant="primary")
+            stop_btn = gr.Button("Stop", variant="stop")
         status = gr.Textbox(label="Status", interactive=False)
 
     train_btn.click(
@@ -57,6 +72,7 @@ def build_training_section(root_dir: gr.Textbox, models: list) -> dict:
         inputs=[root_dir, model, epochs, batch_size, lr, resize, device],
         outputs=[status],
     )
+    stop_btn.click(fn=_stop_training, outputs=[status])
 
     return {
         "model": model,
@@ -66,5 +82,6 @@ def build_training_section(root_dir: gr.Textbox, models: list) -> dict:
         "resize": resize,
         "device": device,
         "train_button": train_btn,
+        "stop_button": stop_btn,
         "status": status,
     }
