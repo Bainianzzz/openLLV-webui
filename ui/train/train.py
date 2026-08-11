@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import gradio as gr
 
-from inference.train import train
+from inference import train
 
 from . import name_choices
 

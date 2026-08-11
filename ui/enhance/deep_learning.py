@@ -6,8 +6,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from inference import OUTPUT_DIR
-from inference.enhance import batch_enhance, enhance
+from inference import batch_enhance, config, enhance
 
 from . import example_images, image_display, method_choices
 
@@ -102,7 +101,7 @@ def build_deep_learning_section(models: list) -> dict:
                         label="Input Folder",
                     )
                     output_dir = gr.Textbox(
-                        value=str(OUTPUT_DIR),
+                        value=str(config().output_dir),
                         label="Output Folder",
                     )
                     max_workers = gr.Number(

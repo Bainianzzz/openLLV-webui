@@ -6,8 +6,7 @@ from typing import Any, Literal
 
 from PIL import Image
 
-from inference import OUTPUT_DIR
-from inference.utils import TaskPool, to_pil
+from inference.utils import TaskPool, config, to_pil
 
 from .enhance import _batch_enhance, _enhance
 from .records import list_records
@@ -39,7 +38,7 @@ def enhance(
         model_path,
         params,
         image,
-        OUTPUT_DIR,
+        config().output_dir,
     )
 
 

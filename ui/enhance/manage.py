@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import gradio as gr
 
-from inference.enhance import list_records
+from inference import list_records
 from ui.components import build_table, render_table
 
 TASK_TYPES = ["traditional", "deepLearning"]

@@ -3,3 +3,14 @@
 storage:
   # location of the SQLite database file (app.db)
   db_path: data/app.db
+
+output:
+  # directory where enhancement results are saved (relative to project root)
+  dir: data/output
+
+datasets:
+  # directory where downloaded datasets are saved (relative to project root)
+  dir: datasets
+  # Hugging Face dataset repos the web UI can download (name -> repo id)
+  download:
+    LOLv1: okita-souji/LOLv1
