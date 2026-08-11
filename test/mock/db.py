@@ -10,17 +10,17 @@ from .session import FakeSession, QuerySession
 
 @contextmanager
 def mock_db() -> Generator[FakeSession, None, None]:
-    """Patch ``inference.enhance.SessionLocal`` with a fake in-memory session.
+    """Patch the ``SessionLocal`` used by the enhancement core with a fake session.
 
-    The patch targets the module object directly: the ``inference.enhance``
-    package attribute is shadowed by the ``enhance`` function, so a string
-    patch target would resolve to the function instead of the module.
+    The enhancement core (``_enhance``) lives in the ``inference.enhance.enhance``
+    module, so the patch targets that module directly: the package-level
+    ``enhance`` attribute is the public function, not the module.
 
     Yields the ``FakeSession`` so tests can inspect the recorded task
     (``session.task``) after running ``enhance``.
     """
     session = FakeSession()
-    enhance_module = import_module("inference.enhance")
+    enhance_module = import_module("inference.enhance.enhance")
     with mock.patch.object(enhance_module, "SessionLocal", return_value=session):
         yield session
 

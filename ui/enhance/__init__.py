@@ -25,10 +25,14 @@ def example_images() -> list[str]:
 
 
 def image_display() -> tuple[gr.Image, gr.Image]:
-    """Build the shared input/output image display and examples."""
+    """Build the shared input/output image display and examples.
+
+    The input image is ``filepath``-typed so its path can be recorded as the
+    task's ``input_path``; the enhanced output stays a PIL image.
+    """
     with gr.Row():
         image = gr.Image(
-            type="pil",
+            type="filepath",
             label="Input Image",
             sources=["upload", "clipboard"],
             height=480,

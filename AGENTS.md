@@ -6,6 +6,7 @@
 - 信任 gradio 提供的参数以及 openLLV 的返回值，不要添加冗余的校验逻辑和测试
 - 不得更新 `pyproject.toml`，如要更新请跟用户报告
 - 不要自行启动 `gradio` 运行冒烟测试，直接告知用户最简要的测试点
+- 不要编写任何临时测试代码进行测试或是运行全部测试，仅通过静态语法检查以及针对修改运行个别测试文件即可。如果缺少测试，告知用户
 
 ## webui 技术栈
 
@@ -19,8 +20,11 @@
 - `inference` webui 服务方法
   - `model`: SQLAlchemy 模型定义
   - `utils` 工具函数
-  - `<domain>`: 各领域模块业务方法
+  - `<domain>`: 各领域模块业务方法；公共入口放包 `__init__.py`，跨单张/批量复用的共享实现放同名字模块（如 `enhance/enhance.py` 的 `_enhance`）
 - `ui` webui 界面，每个包的 **init**.py 负责组装页面组件
   - `ui/<domain>` : 各业务邻域的子组件模块
+  - `ui/components`: 通用可复用组件
 - `test` : webui 测试用例，不要擅自更新，测试文件/测试函数命名必须以 `test_` 开头，图片、数据库操作均为 mock data
   - 涉及数据库操作，使用 `test/mock` 中导出的 `mock_**` 上下文管理器
+  - 涉及图片，使用 `test/mock` 导出的 `TEST_IMAGE`（`test/assets/` 下的共享测试照片路径）
+  - `test/performance`: 性能相关测试
