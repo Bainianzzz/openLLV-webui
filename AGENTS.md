@@ -20,8 +20,11 @@
 - `inference` webui 服务方法
   - `model`: SQLAlchemy 模型定义
   - `utils` 工具函数
-  - `<domain>`: 各领域模块业务方法
+  - `<domain>`: 各领域模块业务方法；公共入口放包 `__init__.py`，跨单张/批量复用的共享实现放同名字模块（如 `enhance/enhance.py` 的 `_enhance`）
 - `ui` webui 界面，每个包的 **init**.py 负责组装页面组件
   - `ui/<domain>` : 各业务邻域的子组件模块
+  - `ui/components`: 通用可复用组件
 - `test` : webui 测试用例，不要擅自更新，测试文件/测试函数命名必须以 `test_` 开头，图片、数据库操作均为 mock data
   - 涉及数据库操作，使用 `test/mock` 中导出的 `mock_**` 上下文管理器
+  - 涉及图片，使用 `test/mock` 导出的 `TEST_IMAGE`（`test/assets/` 下的共享测试照片路径）
+  - `test/performance`: 性能相关测试
