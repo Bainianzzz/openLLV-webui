@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import threading
 from typing import Any, Generic
 
 from .worker import T, Worker
@@ -39,7 +38,7 @@ class Slot(Generic[T]):
         if self._worker is not None and self._worker.is_alive():
             return None
         self._worker = self._spawn(*args, **kwargs)
-        threading.Thread.start(self._worker)
+        self._worker.start()
         return self._worker
 
     def pause(self) -> bool | None:
