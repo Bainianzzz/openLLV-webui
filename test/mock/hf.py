@@ -1,8 +1,8 @@
 """Mock for the Hugging Face dataset download services.
 
-``mock_hf_download`` replaces the download call with a blocking loop, so
-tests can observe a download in flight and then stop it through
-``BackgroundWorker.stop`` (which injects a ``KeyboardInterrupt``).
+``mock_hf_download`` replaces the download call with a blocking loop that
+observes the worker's cancel event, so tests can stop it cooperatively
+through ``pause`` (which sets the event, no ``KeyboardInterrupt`` injection).
 """
 
 from __future__ import annotations
@@ -14,6 +14,8 @@ from contextlib import contextmanager
 from importlib import import_module
 from pathlib import Path
 from unittest import mock
+
+from inference.utils.task import Cancelled
 
 from .config import mock_config
 
@@ -31,10 +33,12 @@ def mock_hf_download(datasets_dir: Path) -> Generator[threading.Event, None, Non
     started = threading.Event()
 
     def download_file(*args, **kwargs) -> None:
-        """Simulate a slow dataset download that can be interrupted."""
+        """Simulate a slow download that stops when the worker's cancel event fires."""
         started.set()
-        while True:
+        worker = threading.current_thread()
+        while not worker.cancel_event.is_set():
             time.sleep(0.01)
+        raise Cancelled
 
     module = import_module("inference.train.download")
     with (

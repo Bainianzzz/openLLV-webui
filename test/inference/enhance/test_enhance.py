@@ -11,6 +11,7 @@ import openLLV as llv
 import pytest
 from PIL import Image
 
+from inference import Status
 from inference.enhance import EnhanceSlot
 from test.mock import TEST_IMAGE, mock_db
 
@@ -51,7 +52,7 @@ def test_enhance_deep_learning(db_session) -> None:
     assert isinstance(outcome, Image.Image)
     assert outcome.mode == "RGB"
     assert worker.error is None
-    assert not worker.cancelled
+    assert worker.status is Status.SUCCESS
     assert db_session.task.id == 1
     assert db_session.task.method == "ZeroDCE"
     assert db_session.task.model_path == "models/zero_dce.pt"
@@ -161,7 +162,7 @@ def test_pause_stops_running_enhance(db_session) -> None:
         assert worker.pause() is True
         assert worker.result() is None
 
-    assert worker.cancelled
+    assert worker.status is Status.STOPPED
     assert db_session.task.status == "stopped"
     assert db_session.task.error is None
     assert db_session.task.finish_at is not None

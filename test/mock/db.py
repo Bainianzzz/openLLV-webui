@@ -12,16 +12,15 @@ from .session import FakeSession, QuerySession
 def mock_db() -> Generator[FakeSession, None, None]:
     """Patch the ``SessionLocal`` used by the enhancement core with a fake session.
 
-    The enhancement core (``_enhance``) lives in the ``inference.enhance.run``
-    module and serves both single and batch runs, so the patch targets that
-    module directly.
+    The enhancement core (``_enhance``) records its task through the shared
+    ``inference.utils.task.TaskStorage``, so the patch targets that module.
 
     Yields the ``FakeSession`` so tests can inspect the recorded task
     (``session.task``) after running ``enhance``.
     """
     session = FakeSession()
-    enhance_module = import_module("inference.enhance.run")
-    with mock.patch.object(enhance_module, "SessionLocal", return_value=session):
+    storage_module = import_module("inference.utils.task.storage")
+    with mock.patch.object(storage_module, "SessionLocal", return_value=session):
         yield session
 
 
@@ -29,16 +28,15 @@ def mock_db() -> Generator[FakeSession, None, None]:
 def mock_train_db() -> Generator[FakeSession, None, None]:
     """Patch the ``SessionLocal`` used by the training runner with a fake session.
 
-    The training runner (``_train``) lives in the ``inference.train.run`` module,
-    so the patch targets that module directly: it is called from the
-    background thread started by ``train.start``.
+    The training runner (``_train``) records its task through the shared
+    ``inference.utils.task.TaskStorage``, so the patch targets that module.
 
     Yields the ``FakeSession`` so tests can inspect the recorded task
     (``session.task``) after running ``start``/``pause``/``result``.
     """
     session = FakeSession()
-    run_module = import_module("inference.train.run")
-    with mock.patch.object(run_module, "SessionLocal", return_value=session):
+    storage_module = import_module("inference.utils.task.storage")
+    with mock.patch.object(storage_module, "SessionLocal", return_value=session):
         yield session
 
 

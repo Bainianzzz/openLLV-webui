@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 
 import openLLV as llv
 
-from inference import SessionLocal, config
+from inference import config
 from inference.model import TrainingTask
+from inference.utils.task import Status, TaskStorage
 
 
 def _train(
@@ -28,32 +28,28 @@ def _train(
     ``TrainingTask`` (status ``running``), runs ``llv.train``, updates the
     record to ``success``/``failed``/``stopped``, and returns the absolute
     checkpoint directory on success. A failure or ``KeyboardInterrupt`` is
-    recorded first and then re-raised so the worker publishes it as
-    ``error``/``cancelled``; the caller turns that into the status text.
-    ``dataset`` is the registered dataset name passed to the trainer;
-    ``output_dir`` selects where checkpoints are saved; a ``None`` value
-    lets openLLV use its default location. A run stopped with
-    ``KeyboardInterrupt`` records the checkpoint dir only when weight files
-    are found on disk. When ``config().swanlab_api_key`` is set, training
-    runs through ``BatchSwanLabTrainer`` so the session is recorded in
-    SwanLab under ``config().swanlab_project``; otherwise the plain
-    ``llv.train`` path is used.
+    recorded first and then re-raised so the worker publishes it as its
+    ``status``; the caller turns that into the status text. ``dataset`` is
+    the registered dataset name passed to the trainer; ``output_dir`` selects
+    where checkpoints are saved; a ``None`` value lets openLLV use its
+    default location. A run stopped with ``KeyboardInterrupt`` records the
+    checkpoint dir only when weight files are found on disk. When
+    ``config().swanlab_api_key`` is set, training runs through
+    ``BatchSwanLabTrainer`` so the session is recorded in SwanLab under
+    ``config().swanlab_project``; otherwise the plain ``llv.train`` path is
+    used.
     """
-    with SessionLocal() as session:
-        task = TrainingTask(
-            model=model,
-            dataset=dataset,
-            dataset_path=root_dir,
-            epochs=epochs,
-            batch_size=batch_size,
-            lr=lr,
-            resize=resize,
-            device=device or "auto",
-            status="running",
-        )
-        session.add(task)
-        session.commit()
-        task_id = task.id
+    store = TaskStorage(TrainingTask)
+    store.begin(
+        model=model,
+        dataset=dataset,
+        dataset_path=root_dir,
+        epochs=epochs,
+        batch_size=batch_size,
+        lr=lr,
+        resize=resize,
+        device=device or "auto",
+    )
 
     try:
         if config().swanlab_api_key:
@@ -91,35 +87,19 @@ def _train(
                 num_workers=0,
             )
     except KeyboardInterrupt:
-        with SessionLocal() as session:
-            task = session.get(TrainingTask, task_id)
-            if task is not None:
-                task.status = "stopped"
-                task.checkpoint_dir = _find_checkpoint_dir(model, dataset, output_dir)
-                task.finish_at = datetime.now(timezone.utc)
-                session.commit()
+        store.finish(
+            Status.STOPPED,
+            checkpoint_dir=_find_checkpoint_dir(model, dataset, output_dir),
+        )
         raise
     except Exception as exc:  # recorded, then re-raised for the worker
-        with SessionLocal() as session:
-            task = session.get(TrainingTask, task_id)
-            if task is not None:
-                task.status = "failed"
-                task.error = str(exc)
-                task.finish_at = datetime.now(timezone.utc)
-                session.commit()
+        store.finish(Status.FAILED, error=str(exc))
         raise
 
     # openLLV returns a CWD-relative path; store an absolute one so the record
     # stays valid no matter where the app is started from.
     checkpoint = str(Path(outcome["checkpoint_dir"]).resolve())
-    with SessionLocal() as session:
-        task = session.get(TrainingTask, task_id)
-        if task is not None:
-            task.status = "success"
-            task.checkpoint_dir = checkpoint
-            task.finish_at = datetime.now(timezone.utc)
-            session.commit()
-
+    store.finish(Status.SUCCESS, checkpoint_dir=checkpoint)
     return checkpoint
 
 

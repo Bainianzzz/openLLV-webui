@@ -5,7 +5,6 @@ from sqlalchemy.orm import sessionmaker
 
 from .model import Base
 from .utils import config, project_url
-from .utils.threads import Slot, Worker
 
 _cfg = config()
 
@@ -24,6 +23,7 @@ from .enhance import EnhanceSlot, EnhanceWorker
 from .enhance import list_records as list_enhance_records
 from .train import DownloadSlot, DownloadWorker, TrainSlot, TrainWorker
 from .train import list_records as list_train_records
+from .utils.task import Slot, Status, Worker
 
 __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
     # init
@@ -31,6 +31,7 @@ __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
     # utils
     "config",
     "Slot",
+    "Status",
     "Worker",
     "project_url",
     # enhance

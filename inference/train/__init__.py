@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from inference.utils.threads import Slot, Worker
+from inference.utils.task import Slot, Worker
 
 from .download import DownloadSlot, DownloadWorker
 from .records import list_records

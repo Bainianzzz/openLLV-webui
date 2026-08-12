@@ -1,16 +1,15 @@
 """Shared enhancement core used by single-image and folder runs."""
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
 import openLLV as llv
 from PIL import Image
 
-from inference import SessionLocal
 from inference.model import DeepLearningTask, TraditionalTask
 from inference.utils import save_image, to_pil
+from inference.utils.task import Status, TaskStorage
 
 
 def _enhance(
@@ -41,11 +40,8 @@ def _enhance(
     else:
         record["model_path"] = model_path
 
-    with SessionLocal() as session:
-        task = task_model(**record)
-        session.add(task)
-        session.commit()
-        task_id = task.id
+    store = TaskStorage(task_model)
+    store.begin(**record)
 
     result: Image.Image | str
     output_path: str
@@ -68,33 +64,13 @@ def _enhance(
             result = to_pil(enhanced)
             output_path = save_image(result, output_dir, image_name=source.name)
     except KeyboardInterrupt:
-        with SessionLocal() as session:
-            task = session.get(task_model, task_id)
-            if task is not None:
-                task.status = "stopped"
-                task.finish_at = datetime.now(timezone.utc)
-                session.commit()
+        store.finish(Status.STOPPED)
         raise
     except Exception as exc:
-        with SessionLocal() as session:
-            task = session.get(task_model, task_id)
-            if task is None:
-                raise RuntimeError(f"Task {task_id} not found") from exc
-            task.status = "failed"
-            task.error = str(exc)
-            task.finish_at = datetime.now(timezone.utc)
-            session.commit()
+        store.finish(Status.FAILED, error=str(exc))
         raise
 
-    with SessionLocal() as session:
-        task = session.get(task_model, task_id)
-        if task is None:
-            raise RuntimeError(f"Task {task_id} not found")
-        task.status = "success"
-        task.output_path = output_path
-        task.finish_at = datetime.now(timezone.utc)
-        session.commit()
-
+    store.finish(Status.SUCCESS, output_path=output_path)
     return result
 
 

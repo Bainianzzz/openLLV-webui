@@ -9,6 +9,7 @@ import openLLV as llv
 import pytest
 
 import inference.train.run as run_module
+from inference import Status
 from inference.train import TrainSlot
 from test.mock import mock_config, mock_train_db
 
@@ -71,7 +72,7 @@ def test_train_success_records_lifecycle(
         assert worker is not None
         assert worker.result() == db_session.task.checkpoint_dir
         assert worker.error is None
-        assert not worker.cancelled
+        assert worker.status is Status.SUCCESS
 
     train.assert_called_once_with(
         "ZeroDCE",
@@ -134,7 +135,7 @@ def test_pause_records_stopped(db_session, checkpoint) -> None:
         assert worker.pause() is True
         assert worker.result() is None
 
-    assert worker.cancelled
+    assert worker.status is Status.STOPPED
     assert db_session.task.status == "stopped"
     assert db_session.task.error is None
     assert db_session.task.checkpoint_dir == checkpoint

@@ -9,7 +9,7 @@ from typing import Any
 
 import gradio as gr
 
-from inference import EnhanceSlot, EnhanceWorker, config
+from inference import EnhanceSlot, EnhanceWorker, Status, config
 
 from . import example_images, image_display, method_choices
 
@@ -48,11 +48,11 @@ def _status(worker: EnhanceWorker | None, batch: bool) -> str:
     """Derive the status text of a finished run in this panel."""
     if worker is None:
         return "No enhancement has been started."
-    if worker.outcome is not None:
+    if worker.status is Status.SUCCESS:
         return f"Enhanced to {worker.outcome}" if batch else "Enhancement finished."
-    if worker.cancelled:
+    if worker.status is Status.STOPPED:
         return "Enhancement stopped."
-    if worker.error is not None:
+    if worker.status is Status.FAILED:
         return f"Enhancement failed: {worker.error}"
     return "No enhancement has been started."
 

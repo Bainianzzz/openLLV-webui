@@ -9,7 +9,7 @@ from typing import Any, Literal
 from PIL import Image
 
 from inference.utils import config
-from inference.utils.threads import Slot, Worker
+from inference.utils.task import Slot, Worker
 
 from .records import list_records
 from .run import _enhance

@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 import gradio as gr
 
-from inference import TrainSlot, config
+from inference import Status, TrainSlot, config
 
 from . import name_choices
 
@@ -57,9 +57,9 @@ def run_training(
         yield "Training is already running."
         return
     outcome = worker.result()
-    if worker.cancelled:
+    if worker.status is Status.STOPPED:
         yield "Training stopped."
-    elif worker.error is not None:
+    elif worker.status is Status.FAILED:
         yield f"Training failed: {worker.error}"
     else:
         yield f"Training finished. Checkpoint: {outcome}"

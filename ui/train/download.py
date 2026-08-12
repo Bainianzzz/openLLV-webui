@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 import gradio as gr
 
-from inference import DownloadSlot, config
+from inference import DownloadSlot, Status, config
 
 # The download slot: ``run_download`` starts a download on it so ``run_stop``
 # can pause it and a new run is rejected while the current one is in flight.
@@ -29,7 +29,7 @@ def run_download(dataset: str, local_path: str) -> Iterator[tuple[dict, str, str
     outcome = worker.result()
     if outcome is not None:
         yield gr.update(interactive=True), f"Downloaded to {outcome}", outcome
-    elif worker.cancelled:
+    elif worker.status is Status.STOPPED:
         yield gr.update(interactive=True), "Download stopped", local_path
     else:
         yield (

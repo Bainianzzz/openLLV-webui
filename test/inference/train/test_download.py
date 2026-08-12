@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from inference import Status
 from inference.train.download import DownloadSlot
 from test.mock import mock_hf_download
 
@@ -15,7 +16,7 @@ def test_download_starts_and_can_be_stopped(tmp_path) -> None:
         assert worker.is_alive()  # it is still running
         assert worker.pause() is True
         assert not worker.is_alive()
-        assert worker.cancelled
+        assert worker.status is Status.STOPPED
 
 
 def test_download_restarts_after_stop(tmp_path) -> None:
