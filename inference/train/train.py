@@ -10,6 +10,13 @@ from .run import run
 _lock = threading.Lock()
 _train_thread: threading.Thread | None = None
 _train_status: str | None = None
+_interrupted_thread: threading.Thread | None = None
+
+# How long ``pause`` waits for an interrupted run to unwind before reporting
+# back. The injected ``KeyboardInterrupt`` lands at the next bytecode
+# boundary, so the run usually stops within a training step; a bounded wait
+# keeps the UI event handler responsive even when the interrupt lands slowly.
+_STOP_WAIT_SECONDS = 20.0
 
 
 def start(
@@ -64,14 +71,23 @@ def pause() -> str:
 
     A Python thread cannot be killed, so the running thread is interrupted
     with a ``KeyboardInterrupt`` that unwinds the blocking ``llv.train()``
-    call.
+    call. The wait for the run to unwind is bounded; if it has not stopped
+    in time, a status message is returned instead of blocking the caller
+    forever. Repeated calls on the same run do not inject a second
+    ``KeyboardInterrupt`` into the already-interrupted thread.
     """
+    global _interrupted_thread
     thread = _train_thread
     if thread is None or not thread.is_alive():
+        _interrupted_thread = None
         return "No training is running."
-    if not _raise_keyboard_interrupt(thread):
-        return "Training could not be stopped."
-    thread.join()
+    if thread is not _interrupted_thread:
+        if not _raise_keyboard_interrupt(thread):
+            return "Training could not be stopped."
+        _interrupted_thread = thread
+    thread.join(timeout=_STOP_WAIT_SECONDS)
+    if thread.is_alive():
+        return "Training is stopping…"
     return "Training stopped."
 
 
