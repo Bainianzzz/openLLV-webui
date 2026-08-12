@@ -22,6 +22,7 @@ def run_training(
     device: str,
     output_dir: str,
     swanlab_api_key: str,
+    swanlab_project: str,
 ) -> Iterator[str]:
     """Start one training session and stream its outcome.
 
@@ -30,10 +31,12 @@ def run_training(
     (naturally or through the Stop button). ``dataset``, ``root_dir``, and
     ``output_dir`` are recorded with the training record; an empty
     ``output_dir`` keeps openLLV's default checkpoint location. The
-    ``swanlab_api_key`` is stored on the shared config object (overriding the
-    ``config.yaml`` value in memory) so the runner picks it up.
+    ``swanlab_api_key`` and ``swanlab_project`` are stored on the shared
+    config object (overriding the ``config.yaml`` values in memory) so the
+    runner picks them up.
     """
     config().set_swanlab_api_key(swanlab_api_key)
+    config().set_swanlab_project(swanlab_project)
     yield start(
         model,
         dataset,
@@ -79,7 +82,7 @@ def build_training_section(models: list) -> dict:
         )
         with gr.Row():
             train_btn = gr.Button("Train", variant="primary")
-            stop_btn = gr.Button("Stop", variant="stop")
+            stop_btn = gr.Button("Stop", variant="secondary")
         status = gr.Textbox(label="Status", interactive=False)
 
     return {

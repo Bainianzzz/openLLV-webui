@@ -17,8 +17,8 @@ def build_train() -> dict:
     The "Train" tab holds the dataset config (download and selection) and the
     hyperparameters; the "Records" tab browses stored training records; the
     "Extension" tab holds optional SwanLab experiment recording. Training
-    consumes the dataset root picked on the left and the SwanLab API key
-    from the extension tab.
+    consumes the dataset root picked on the left and the SwanLab API key and
+    project from the extension tab.
     """
     from .dataset import build_dataset_section
     from .download import build_download_section, run_download, run_stop
@@ -68,6 +68,7 @@ def build_train() -> dict:
             training["device"],
             training["output_dir"],
             extension["api_key"],
+            extension["project"],
         ],
         outputs=[training["status"]],
     )

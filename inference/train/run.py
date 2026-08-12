@@ -34,8 +34,9 @@ def run(
     ``KeyboardInterrupt`` records the checkpoint dir only when weight files
     are found on disk. When
     ``config().swanlab_api_key`` is set, training runs through
-    ``BatchSwanLabTrainer`` so the session is recorded in SwanLab; otherwise
-    the plain ``llv.train`` path is used.
+    ``BatchSwanLabTrainer`` so the session is recorded in SwanLab under
+    ``config().swanlab_project``; otherwise the plain ``llv.train`` path is
+    used.
     """
     with SessionLocal() as session:
         task = TrainingTask(
@@ -69,6 +70,7 @@ def run(
                 output_dir=output_dir or None,
                 num_workers=0,
                 swan_api_key=config().swanlab_api_key,
+                swan_project=config().swanlab_project,
                 swan_experiment=model,
             ).train()
         else:

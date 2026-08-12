@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from .model import Base
-from .utils import DownloadCancelled, config
+from .utils import DownloadCancelled, config, project_url
 
 _cfg = config()
 
@@ -29,6 +29,7 @@ __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
     # utils
     "config",
     "DownloadCancelled",
+    "project_url",
     # enhance
     "enhance",
     "batch_enhance",

@@ -34,8 +34,9 @@ def _resolve_path(path: str) -> Path:
 class AppConfig:
     """Runtime settings read from ``config.yaml``.
 
-    Fields are plain attributes; ``set_swanlab_api_key`` updates the
-    in-memory SwanLab API key for the current process.
+    Fields are plain attributes; ``set_swanlab_api_key`` and
+    ``set_swanlab_project`` update the in-memory SwanLab settings for the
+    current process.
     """
 
     project_root: Path
@@ -46,6 +47,7 @@ class AppConfig:
     datasets_dir: Path
     managed_datasets: dict[str, str]
     swanlab_api_key: str | None = None
+    swanlab_project: str | None = None
 
     def set_swanlab_api_key(self, api_key: str | None) -> None:
         """Update the runtime SwanLab API key (e.g. from the web UI).
@@ -53,6 +55,13 @@ class AppConfig:
         An empty string is normalized to ``None``.
         """
         self.swanlab_api_key = api_key or None
+
+    def set_swanlab_project(self, project: str | None) -> None:
+        """Update the runtime SwanLab project name (e.g. from the web UI).
+
+        An empty string is normalized to ``None``.
+        """
+        self.swanlab_project = project or None
 
 
 @cache
@@ -73,6 +82,7 @@ def config() -> AppConfig:
         datasets_dir=_resolve_path(raw["datasets"]["dir"]),
         managed_datasets=dict(raw["datasets"]["download"]),
         swanlab_api_key=raw.get("swanlab", {}).get("api_key"),
+        swanlab_project=raw.get("swanlab", {}).get("project"),
     )
 
 
