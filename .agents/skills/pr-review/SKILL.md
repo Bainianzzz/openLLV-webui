@@ -9,10 +9,10 @@ description: 在审核 openLLV-webui（Gradio webui）PR 时使用，检查 ui �
 
 按照本项目的 webui 约定审核 PR，并在用户明确授权后用 `gh` CLI 提交结构化结论。目标不是追求唯一写法，而是确认变更符合项目分层、错误语义、文档和测试要求，不引入功能回归、性能劣化或安全问题。
 
-技术栈：**Python 3.10+**、**Gradio**、**openLLV**、**SQLAlchemy 2.x**、**pytest**、**uv**（依赖与 Python 环境统一由 uv 管理）。项目结构：`inference`（webui 服务方法：`model` SQLAlchemy 模型定义、`utils` 工具函数）、`ui`（webui 界面，每个包的 `__init__.py` 负责组装页面组件，`ui/<domain>` 为各业务邻域的子组件模块）、`test`（webui 测试用例，mock data）、`docs`（openLLV 文档同步）、`scripts`（如 `sync-docs.sh` 同步 openLLV 文档）。
+技术栈：**Python 3.10+**、**Gradio**、**openLLV**、**SQLAlchemy 2.x**、**pytest**、**uv**（依赖与 Python 环境统一由 uv 管理）。项目结构：`inference`（webui 服务方法：`model` SQLAlchemy 模型定义、`utils` 工具函数）、`ui`（webui 界面，每个包的 `__init__.py` 负责组装页面组件，`ui/<domain>` 为各业务邻域的子组件模块）、`test`（webui 测试用例，mock data）、`.agents/skills/openllv/reference`（openLLV 文档）。
 
 适用：PR 合并前审核、`gh pr diff` / `gh pr review`、检查 ui 组件、inference 服务方法、模型、utils、文档、测试、依赖变更与合并门禁。
-不适用：无 PR 上下文的本地单文件解释；openLLV 上游仓库的 PR（本仓库与上游仅通过 `scripts/sync-docs.sh` 同步 docs、依赖锁定对接）。
+不适用：无 PR 上下文的本地单文件解释；openLLV 上游仓库的 PR（本仓库与上游仅通过依赖锁定（`uv.lock`）对接）。
 
 > 参考技能：核对 Gradio API 用法用 `gradio` 技能，核对 openLLV 用法用 `openllv` 技能（不直接阅读 openLLV 源码），核对数据库写法用 `sqlalchemy` 技能。
 
@@ -41,7 +41,7 @@ gh pr view <PR> --json files,additions,deletions,baseRefName,headRefName
 适用条件：所有 PR。
 
 - 检查所有新增、修改、删除和重命名；新增顶层路径或无法识别的文件必须说明用途与执行方式。
-- 执行入口（`.husky/pre-commit`、`scripts/**`、`app.py`、`pyproject.toml` 与测试配置）不能仅因不在业务目录中而跳过。
+- 执行入口（`.husky/pre-commit`、`app.py`、`pyproject.toml` 与测试配置）不能仅因不在业务目录中而跳过。
 - 检查 import-time side effect 和配置驱动入口，避免小型配置变更激活未修改代码中的危险路径。
 
 ### 1. ui 组件与页面组装
@@ -136,7 +136,7 @@ gh pr view <PR> --json files,additions,deletions,baseRefName,headRefName
 
 ### 5. 文档
 
-适用条件：`docs/**`、`README.md` 有变更。
+适用条件：`.agents/skills/openllv/reference/**`、`README.md` 有变更。
 
 - 新增功能/参数/行为变更同步更新对应文档（参数名、默认值、支持列表、示例）。
 - 教程/说明性文档与实际行为一致，示例可运行。
