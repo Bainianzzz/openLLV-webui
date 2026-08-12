@@ -19,7 +19,7 @@ def build_train() -> dict:
     Training consumes the dataset root picked on the left.
     """
     from .dataset import build_dataset_section
-    from .download import build_download_section, run_download
+    from .download import build_download_section, run_download, run_stop
     from .manage import build_manage_section
     from .train import build_training_section
 
@@ -43,6 +43,10 @@ def build_train() -> dict:
         fn=run_download,
         inputs=[download["dataset"], dataset["root_dir"]],
         outputs=[download["status"], dataset["root_dir"]],
+    )
+    download["stop_button"].click(
+        fn=run_stop,
+        outputs=[download["status"]],
     )
 
     return {

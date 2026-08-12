@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from .model import Base
-from .utils import config
+from .utils import DownloadCancelled, config
 
 _cfg = config()
 
@@ -20,7 +20,7 @@ def init_db() -> None:
 
 
 from .enhance import batch_enhance, enhance, list_records
-from .train import download_dataset, pause, result, start
+from .train import download_dataset, pause, result, start, stop_download
 from .train import list_records as list_train_records
 
 __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
@@ -28,12 +28,14 @@ __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
     "init_db",
     # utils
     "config",
+    "DownloadCancelled",
     # enhance
     "enhance",
     "batch_enhance",
     "list_records",
     # train
     "download_dataset",
+    "stop_download",
     "list_train_records",
     "pause",
     "result",
