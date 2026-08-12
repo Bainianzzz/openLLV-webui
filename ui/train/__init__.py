@@ -5,6 +5,16 @@ from __future__ import annotations
 import gradio as gr
 import openLLV as llv
 
+from inference import BackgroundWorker
+
+# One worker slot per background task on this page: dataset download and
+# training run independently. Each module stores the worker returned by its
+# ``start_*`` function back into its slot.
+WORKER_SLOTS: dict[str, BackgroundWorker | None] = {
+    "download": None,
+    "train": None,
+}
+
 
 def name_choices(rows) -> list[str]:
     """Turn ``llv.list_available()`` rows into Gradio dropdown choices."""

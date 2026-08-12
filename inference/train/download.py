@@ -2,55 +2,61 @@
 
 from __future__ import annotations
 
-import threading
-
 from huggingface_hub import hf_hub_download, list_repo_files
 
-from inference.utils import DownloadCancelled, config
-
-# `snapshot_download` has no cancellation API, so the repo files are downloaded
-# one by one and checked against this flag so the user can stop a download.
-_stop_requested = threading.Event()
+from inference.utils import config
+from inference.utils.threads import BackgroundWorker
 
 
-def stop_download() -> None:
-    """Signal the in-flight dataset download to stop at the next file boundary."""
-    _stop_requested.set()
+def start(
+    worker: BackgroundWorker[str] | None,
+    repo: str,
+) -> BackgroundWorker[str] | None:
+    """Start downloading ``repo`` on the given worker slot.
+
+    ``worker`` is the slot's current worker (``None`` when idle): when it is
+    still running the start is rejected and ``None`` is returned; otherwise a
+    new daemon worker is started and returned for the caller to store back
+    into the slot.
+    """
+    if worker is not None and worker.is_alive():
+        return None
+    worker = BackgroundWorker(_download, repo, name="dataset-download")
+    worker.start()
+    return worker
 
 
-def download_dataset(repo: str) -> str:
+def pause(worker: BackgroundWorker[str] | None) -> bool | None:
+    """Stop the download on ``worker``; ``None`` idle, ``True`` stopped, ``False`` stopping."""
+    if worker is None or not worker.is_alive():
+        return None
+    return worker.stop()
+
+
+def result(worker: BackgroundWorker[str] | None) -> str | None:
+    """Wait for the download on ``worker`` to finish and return its local dir."""
+    if worker is not None:
+        worker.join()
+    return worker.outcome if worker is not None else None
+
+
+def _download(repo: str) -> str:
     """Download a Hugging Face dataset repo into the configured datasets dir.
 
-    Returns the local directory the dataset was downloaded into.
+    Returns the local directory the dataset was downloaded into. The repo
+    files are downloaded one by one so a ``KeyboardInterrupt`` from
+    ``BackgroundWorker.stop`` lands at a file boundary.
     """
-    _stop_requested.clear()
     target = config().datasets_dir / repo.split("/")[-1]
     target.mkdir(parents=True, exist_ok=True)
-
-    def download_all() -> None:
-        for filename in list_repo_files(repo_id=repo, repo_type="dataset"):
-            if _stop_requested.is_set():
-                return
-            hf_hub_download(
-                repo_id=repo,
-                filename=filename,
-                repo_type="dataset",
-                local_dir=str(target),
-            )
-
-    # The download runs on a single daemon thread while this thread polls the
-    # stop flag, so a stop lands quickly and an abandoned download never
-    # blocks interpreter shutdown.
-    worker = threading.Thread(target=download_all, name="dataset-download", daemon=True)
-    worker.start()
-    try:
-        while worker.is_alive():
-            if _stop_requested.is_set():
-                raise DownloadCancelled
-            worker.join(timeout=0.2)
-    finally:
-        _stop_requested.clear()
+    for filename in list_repo_files(repo_id=repo, repo_type="dataset"):
+        hf_hub_download(
+            repo_id=repo,
+            filename=filename,
+            repo_type="dataset",
+            local_dir=str(target),
+        )
     return str(target)
 
 
-__all__ = ["download_dataset", "stop_download"]
+__all__ = ["pause", "result", "start"]

@@ -11,7 +11,7 @@ from inference import SessionLocal, config
 from inference.model import TrainingTask
 
 
-def run(
+def _train(
     model: str,
     dataset: str,
     root_dir: str,
@@ -26,17 +26,18 @@ def run(
 
     Called from ``train.start`` on a background daemon thread. Inserts a
     ``TrainingTask`` (status ``running``), runs ``llv.train``, updates the
-    record to ``success``/``failed``/``stopped``, and returns the final
-    status message. ``dataset`` is the registered dataset name passed to the
-    trainer; ``output_dir`` selects where checkpoints are saved; a ``None``
-    value lets openLLV use its default location. The recorded
-    ``checkpoint_dir`` is stored as an absolute path. A run stopped with
+    record to ``success``/``failed``/``stopped``, and returns the absolute
+    checkpoint directory on success. A failure or ``KeyboardInterrupt`` is
+    recorded first and then re-raised so the worker publishes it as
+    ``error``/``cancelled``; the caller turns that into the status text.
+    ``dataset`` is the registered dataset name passed to the trainer;
+    ``output_dir`` selects where checkpoints are saved; a ``None`` value
+    lets openLLV use its default location. A run stopped with
     ``KeyboardInterrupt`` records the checkpoint dir only when weight files
-    are found on disk. When
-    ``config().swanlab_api_key`` is set, training runs through
-    ``BatchSwanLabTrainer`` so the session is recorded in SwanLab under
-    ``config().swanlab_project``; otherwise the plain ``llv.train`` path is
-    used.
+    are found on disk. When ``config().swanlab_api_key`` is set, training
+    runs through ``BatchSwanLabTrainer`` so the session is recorded in
+    SwanLab under ``config().swanlab_project``; otherwise the plain
+    ``llv.train`` path is used.
     """
     with SessionLocal() as session:
         task = TrainingTask(
@@ -90,39 +91,36 @@ def run(
                 num_workers=0,
             )
     except KeyboardInterrupt:
-        status, message, error, checkpoint = (
-            "stopped",
-            "Training stopped.",
-            None,
-            _find_checkpoint_dir(model, dataset, output_dir),
-        )
-    except Exception as exc:  # noqa: BLE001 - any trainer failure becomes a status message
-        status, message, error, checkpoint = (
-            "failed",
-            f"Training failed: {exc}",
-            str(exc),
-            None,
-        )
-    else:
-        status, message, error, checkpoint = (
-            "success",
-            f"Training finished. Checkpoint: {outcome['checkpoint_dir']}",
-            None,
-            # openLLV returns a CWD-relative path; store an absolute one so the
-            # record stays valid no matter where the app is started from.
-            str(Path(outcome["checkpoint_dir"]).resolve()),
-        )
+        with SessionLocal() as session:
+            task = session.get(TrainingTask, task_id)
+            if task is not None:
+                task.status = "stopped"
+                task.checkpoint_dir = _find_checkpoint_dir(model, dataset, output_dir)
+                task.finish_at = datetime.now(timezone.utc)
+                session.commit()
+        raise
+    except Exception as exc:  # recorded, then re-raised for the worker
+        with SessionLocal() as session:
+            task = session.get(TrainingTask, task_id)
+            if task is not None:
+                task.status = "failed"
+                task.error = str(exc)
+                task.finish_at = datetime.now(timezone.utc)
+                session.commit()
+        raise
 
+    # openLLV returns a CWD-relative path; store an absolute one so the record
+    # stays valid no matter where the app is started from.
+    checkpoint = str(Path(outcome["checkpoint_dir"]).resolve())
     with SessionLocal() as session:
         task = session.get(TrainingTask, task_id)
         if task is not None:
-            task.status = status
-            task.error = error
+            task.status = "success"
             task.checkpoint_dir = checkpoint
             task.finish_at = datetime.now(timezone.utc)
             session.commit()
 
-    return message
+    return checkpoint
 
 
 def _find_checkpoint_dir(
@@ -144,4 +142,4 @@ def _find_checkpoint_dir(
     return str(base.resolve())
 
 
-__all__ = ["run"]
+__all__ = ["_train"]

@@ -6,7 +6,9 @@ from collections.abc import Iterator
 
 import gradio as gr
 
-from inference import DownloadCancelled, config, download_dataset, stop_download
+from inference import config, pause_download, result_download, start_download
+
+from . import WORKER_SLOTS
 
 
 def run_download(dataset: str, local_path: str) -> Iterator[tuple[dict, str, str]]:
@@ -18,20 +20,33 @@ def run_download(dataset: str, local_path: str) -> Iterator[tuple[dict, str, str
     on failure.
     """
     yield gr.update(interactive=False), "Downloading…", local_path
-    try:
-        path = download_dataset(config().managed_datasets[dataset])
-    except DownloadCancelled:
+    worker = start_download(
+        WORKER_SLOTS["download"], config().managed_datasets[dataset]
+    )
+    if worker is None:
+        yield gr.update(interactive=True), "Download is already running.", local_path
+        return
+    WORKER_SLOTS["download"] = worker
+    outcome = result_download(worker)
+    if outcome is not None:
+        yield gr.update(interactive=True), f"Downloaded to {outcome}", outcome
+    elif worker.cancelled:
         yield gr.update(interactive=True), "Download stopped", local_path
-        return
-    except Exception as exc:  # noqa: BLE001 - report any download failure in the status box
-        yield gr.update(interactive=True), f"Download failed: {exc}", local_path
-        return
-    yield gr.update(interactive=True), f"Downloaded to {path}", path
+    else:
+        yield (
+            gr.update(interactive=True),
+            f"Download failed: {worker.error}",
+            local_path,
+        )
 
 
 def run_stop() -> str:
-    """Signal the in-flight download to stop."""
-    stop_download()
+    """Stop the in-flight download and report the outcome."""
+    state = pause_download(WORKER_SLOTS["download"])
+    if state is None:
+        return "No download is running."
+    if state:
+        return "Download stopped."
     return "Stopping download…"
 
 

@@ -1,7 +1,8 @@
 """Mock for the Hugging Face dataset download services.
 
-``mock_hf_download`` replaces the download call with a 20-second sleep, so
-tests can observe a download in flight and then stop it.
+``mock_hf_download`` replaces the download call with a blocking loop, so
+tests can observe a download in flight and then stop it through
+``BackgroundWorker.stop`` (which injects a ``KeyboardInterrupt``).
 """
 
 from __future__ import annotations
@@ -16,13 +17,10 @@ from unittest import mock
 
 from .config import mock_config
 
-# Simulated duration of a dataset download (seconds).
-DOWNLOAD_SECONDS = 20
-
 
 @contextmanager
 def mock_hf_download(datasets_dir: Path) -> Generator[threading.Event, None, None]:
-    """Patch the download module with a 20-second fake download.
+    """Patch the download module with a blocking fake download.
 
     The patched ``config`` points the datasets dir at ``datasets_dir`` so the
     download does not touch the real ``datasets/`` folder.
@@ -33,9 +31,10 @@ def mock_hf_download(datasets_dir: Path) -> Generator[threading.Event, None, Non
     started = threading.Event()
 
     def download_file(*args, **kwargs) -> None:
-        """Simulate a slow dataset download."""
+        """Simulate a slow dataset download that can be interrupted."""
         started.set()
-        time.sleep(DOWNLOAD_SECONDS)
+        while True:
+            time.sleep(0.01)
 
     module = import_module("inference.train.download")
     with (

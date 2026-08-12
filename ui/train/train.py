@@ -6,9 +6,9 @@ from collections.abc import Iterator
 
 import gradio as gr
 
-from inference import config, pause, result, start
+from inference import config, pause_train, result_train, start_train
 
-from . import name_choices
+from . import WORKER_SLOTS, name_choices
 
 
 def run_training(
@@ -37,7 +37,8 @@ def run_training(
     """
     config().set_swanlab_api_key(swanlab_api_key)
     config().set_swanlab_project(swanlab_project)
-    yield start(
+    worker = start_train(
+        WORKER_SLOTS["train"],
         model,
         dataset,
         root_dir,
@@ -48,12 +49,27 @@ def run_training(
         None if device == "auto" else device,
         output_dir or None,
     )
-    yield result()
+    if worker is None:
+        yield "Training is already running."
+        return
+    WORKER_SLOTS["train"] = worker
+    outcome = result_train(worker)
+    if worker.cancelled:
+        yield "Training stopped."
+    elif worker.error is not None:
+        yield f"Training failed: {worker.error}"
+    else:
+        yield f"Training finished. Checkpoint: {outcome}"
 
 
 def stop_training() -> str:
     """Stop the running training session."""
-    return pause()
+    state = pause_train(WORKER_SLOTS["train"])
+    if state is None:
+        return "No training is running."
+    if state:
+        return "Training stopped."
+    return "Training is stopping…"
 
 
 def build_training_section(models: list) -> dict:

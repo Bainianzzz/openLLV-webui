@@ -2,13 +2,34 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import gradio as gr
 
-from inference import batch_enhance, config, enhance
+from inference import BackgroundWorker, config, result_enhance, start_enhance
 
-from . import example_images, image_display, method_choices
+from . import (
+    WORKER_SLOTS,
+    _make_stop_enhance,
+    example_images,
+    image_display,
+    method_choices,
+)
+
+
+def _status(worker: BackgroundWorker | None, batch: bool) -> str:
+    """Derive the status text of a finished run in this panel."""
+    if worker is None:
+        return "No enhancement has been started."
+    if worker.outcome is not None:
+        return f"Enhanced to {worker.outcome}" if batch else "Enhancement finished."
+    if worker.cancelled:
+        return "Enhancement stopped."
+    if worker.error is not None:
+        return f"Enhancement failed: {worker.error}"
+    return "No enhancement has been started."
 
 
 def _sync_batch_button(value: str | None) -> dict:
@@ -16,23 +37,57 @@ def _sync_batch_button(value: str | None) -> dict:
     return gr.update(interactive=bool(value and value.strip()))
 
 
-def _run_batch(
+def run_single_enhance(
+    method: str,
+    image: str | None,
+    model_file: str | None,
+) -> Iterator[tuple[str, Any]]:
+    """Start one enhancement run and stream its status and result image."""
+    if image is None:
+        yield "Please upload an image first.", gr.update()
+        return
+    worker = start_enhance(
+        WORKER_SLOTS["deep_learning_single"],
+        method,
+        image,
+        "deepLearning",
+        model_path=model_file,
+    )
+    if worker is None:
+        yield "Enhancement is already running.", gr.update()
+        return
+    WORKER_SLOTS["deep_learning_single"] = worker
+    outcome = result_enhance(worker)
+    yield (
+        _status(worker, batch=False),
+        (outcome if outcome is not None else gr.update()),
+    )
+
+
+def run_batch(
     method: str,
     model_file: str | None,
     input_dir: str,
     output_dir: str,
-) -> str:
-    """Run batch enhancement on a folder and report how many images were processed."""
+) -> Iterator[str]:
+    """Start a batch run and stream its status."""
     if not Path(input_dir).is_dir():
-        return f"Input folder does not exist: {input_dir}"
-    output = batch_enhance(
+        yield f"Input folder does not exist: {input_dir}"
+        return
+    worker = start_enhance(
+        WORKER_SLOTS["deep_learning_batch"],
         method,
         input_dir,
-        output_dir,
         "deepLearning",
         model_path=model_file,
+        output_dir=output_dir,
     )
-    return f"Enhanced to {output}"
+    if worker is None:
+        yield "Enhancement is already running."
+        return
+    WORKER_SLOTS["deep_learning_batch"] = worker
+    result_enhance(worker)
+    yield _status(worker, batch=True)
 
 
 def build_deep_learning_section(models: list) -> dict:
@@ -62,21 +117,28 @@ def build_deep_learning_section(models: list) -> dict:
                 with gr.Column():
                     gr.Examples(examples=example_images(), inputs=image, label=".e.g")
 
-            enhance_btn = gr.Button("Enhance", variant="primary")
+            with gr.Row():
+                enhance_btn = gr.Button("Enhance", variant="primary")
+                stop_btn = gr.Button("Stop", variant="secondary")
+            status = gr.Textbox(label="Status", interactive=False)
 
             enhance_btn.click(
-                fn=lambda method, image, model_file: enhance(
-                    method, image, "deepLearning", model_path=model_file
-                ),
+                fn=run_single_enhance,
                 inputs=[method, image, model_file],
-                outputs=[output],
+                outputs=[status, output],
+            )
+            stop_btn.click(
+                fn=_make_stop_enhance("deep_learning_single"),
+                outputs=[status],
             )
             single = {
                 "method": method,
                 "model_file": model_file,
                 "image": image,
                 "output": output,
+                "status": status,
                 "enhance_button": enhance_btn,
+                "stop_button": stop_btn,
             }
 
         with gr.Tab("Batch"):
@@ -101,7 +163,11 @@ def build_deep_learning_section(models: list) -> dict:
                         label="Output Folder",
                     )
 
-            batch_btn = gr.Button("Batch Enhance", variant="primary", interactive=False)
+            with gr.Row():
+                batch_btn = gr.Button(
+                    "Batch Enhance", variant="primary", interactive=False
+                )
+                batch_stop_btn = gr.Button("Stop", variant="secondary")
             status = gr.Textbox(label="Status", interactive=False)
 
             input_dir.input(
@@ -116,7 +182,7 @@ def build_deep_learning_section(models: list) -> dict:
             )
 
             batch_btn.click(
-                fn=_run_batch,
+                fn=run_batch,
                 inputs=[
                     batch_method,
                     batch_model_file,
@@ -125,12 +191,17 @@ def build_deep_learning_section(models: list) -> dict:
                 ],
                 outputs=[status],
             )
+            batch_stop_btn.click(
+                fn=_make_stop_enhance("deep_learning_batch"),
+                outputs=[status],
+            )
             batch = {
                 "method": batch_method,
                 "model_file": batch_model_file,
                 "input_dir": input_dir,
                 "output_dir": output_dir,
                 "batch_button": batch_btn,
+                "stop_button": batch_stop_btn,
                 "status": status,
             }
 

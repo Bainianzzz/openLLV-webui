@@ -67,6 +67,14 @@ def _enhance(
             )
             result = to_pil(enhanced)
             output_path = save_image(result, output_dir, image_name=source.name)
+    except KeyboardInterrupt:
+        with SessionLocal() as session:
+            task = session.get(task_model, task_id)
+            if task is not None:
+                task.status = "stopped"
+                task.finish_at = datetime.now(timezone.utc)
+                session.commit()
+        raise
     except Exception as exc:
         with SessionLocal() as session:
             task = session.get(task_model, task_id)
@@ -76,7 +84,7 @@ def _enhance(
             task.error = str(exc)
             task.finish_at = datetime.now(timezone.utc)
             session.commit()
-        raise ValueError(f"Enhancement failed: {exc}") from exc
+        raise
 
     with SessionLocal() as session:
         task = session.get(task_model, task_id)

@@ -2,38 +2,33 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
-
-import pytest
-
-from inference.train.download import download_dataset, stop_download
-from inference.utils import DownloadCancelled
+from inference.train.download import pause, result, start
 from test.mock import mock_hf_download
 
 
 def test_download_starts_and_can_be_stopped(tmp_path) -> None:
     """A download starts, keeps running, and stops on request."""
-    with (
-        mock_hf_download(datasets_dir=tmp_path) as started,
-        ThreadPoolExecutor(max_workers=1) as pool,
-    ):
-        future = pool.submit(download_dataset, "user/lolv1")
-        assert started.wait(5)  # the fake 20s download has begun
-        assert not future.done()  # it is still running
-        stop_download()
-        with pytest.raises(DownloadCancelled):
-            future.result(timeout=10)
+    with mock_hf_download(datasets_dir=tmp_path) as started:
+        worker = start(None, "user/lolv1")
+        assert worker is not None
+        assert started.wait(5)  # the fake download has begun
+        assert worker.is_alive()  # it is still running
+        assert pause(worker) is True
+        assert not worker.is_alive()
+        assert worker.cancelled
 
 
-def test_stop_before_download_is_cleared_on_next_run(tmp_path) -> None:
-    """A stop requested outside a download does not cancel the following run."""
-    stop_download()
-    with (
-        mock_hf_download(datasets_dir=tmp_path) as started,
-        ThreadPoolExecutor(max_workers=1) as pool,
-    ):
-        future = pool.submit(download_dataset, "user/lolv1")
-        assert started.wait(5)  # the flag was reset, the download starts
-        stop_download()
-        with pytest.raises(DownloadCancelled):
-            future.result(timeout=10)
+def test_download_restarts_after_stop(tmp_path) -> None:
+    """A new download can start on the slot once the previous one stopped."""
+    with mock_hf_download(datasets_dir=tmp_path) as started:
+        worker = start(None, "user/lolv1")
+        assert worker is not None
+        assert started.wait(5)
+        assert pause(worker) is True
+        assert start(worker, "user/lolv1") is not None
+
+
+def test_download_without_worker() -> None:
+    """``pause``/``result`` report when no download is in flight."""
+    assert pause(None) is None
+    assert result(None) is None

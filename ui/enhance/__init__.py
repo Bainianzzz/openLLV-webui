@@ -2,10 +2,37 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import gradio as gr
 import openLLV as llv
+
+from inference import BackgroundWorker, pause_enhance
+
+# One worker slot per enhancement entry (single/batch × traditional/deep-
+# learning). Each panel stores the worker returned by ``start_enhance`` back
+# into its slot, so the four entries run independently.
+WORKER_SLOTS: dict[str, BackgroundWorker | None] = {
+    "traditional_single": None,
+    "traditional_batch": None,
+    "deep_learning_single": None,
+    "deep_learning_batch": None,
+}
+
+
+def _make_stop_enhance(slot: str) -> Callable[[], str]:
+    """Return the Stop-button handler for the worker in ``slot``."""
+
+    def stop_enhance() -> str:
+        state = pause_enhance(WORKER_SLOTS[slot])
+        if state is None:
+            return "No enhancement is running."
+        if state:
+            return "Enhancement stopped."
+        return "Enhancement is stopping…"
+
+    return stop_enhance
 
 
 def method_choices(rows) -> list[str]:
