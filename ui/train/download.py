@@ -2,23 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import gradio as gr
 
 from inference import DownloadCancelled, config, download_dataset, stop_download
 
 
-def run_download(dataset: str, local_path: str) -> tuple[str, str]:
+def run_download(dataset: str, local_path: str) -> Iterator[tuple[dict, str, str]]:
     """Download the selected dataset and report its local path.
 
-    ``local_path`` is the current selection value, kept unchanged on failure.
+    The Download button is disabled for the duration of the run: the first
+    yield disables it immediately, the last yield restores it with the
+    outcome. ``local_path`` is the current selection value, kept unchanged
+    on failure.
     """
+    yield gr.update(interactive=False), "Downloading…", local_path
     try:
         path = download_dataset(config().managed_datasets[dataset])
     except DownloadCancelled:
-        return "Download stopped", local_path
+        yield gr.update(interactive=True), "Download stopped", local_path
+        return
     except Exception as exc:  # noqa: BLE001 - report any download failure in the status box
-        return f"Download failed: {exc}", local_path
-    return f"Downloaded to {path}", path
+        yield gr.update(interactive=True), f"Download failed: {exc}", local_path
+        return
+    yield gr.update(interactive=True), f"Downloaded to {path}", path
 
 
 def run_stop() -> str:

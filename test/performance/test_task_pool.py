@@ -9,7 +9,7 @@ from inference.utils import TaskPool
 
 def test_ten_one_second_tasks_finish_within_five_seconds() -> None:
     """A default pool runs 10 one-second tasks in parallel within 5s."""
-    pool = TaskPool()
+    pool = TaskPool(max_workers=10)
     start = time.monotonic()
     try:
         futures = [pool.submit(time.sleep, 1) for _ in range(10)]

@@ -45,7 +45,11 @@ def build_train() -> dict:
     download["download_button"].click(
         fn=run_download,
         inputs=[download["dataset"], dataset["root_dir"]],
-        outputs=[download["status"], dataset["root_dir"]],
+        outputs=[
+            download["download_button"],
+            download["status"],
+            dataset["root_dir"],
+        ],
     )
     download["stop_button"].click(
         fn=run_stop,

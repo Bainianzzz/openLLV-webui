@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import threading
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
 from huggingface_hub import hf_hub_download, list_repo_files
 
@@ -28,28 +27,28 @@ def download_dataset(repo: str) -> str:
     target = config().datasets_dir / repo.split("/")[-1]
     target.mkdir(parents=True, exist_ok=True)
 
-    def download_file(filename: str) -> None:
-        hf_hub_download(
-            repo_id=repo,
-            filename=filename,
-            repo_type="dataset",
-            local_dir=str(target),
-        )
-
-    files = list_repo_files(repo_id=repo, repo_type="dataset")
-    pool = ThreadPoolExecutor(max_workers=8)
-    try:
-        pending = {pool.submit(download_file, filename) for filename in files}
-        while pending:
+    def download_all() -> None:
+        for filename in list_repo_files(repo_id=repo, repo_type="dataset"):
             if _stop_requested.is_set():
-                pool.shutdown(wait=False, cancel_futures=True)
+                return
+            hf_hub_download(
+                repo_id=repo,
+                filename=filename,
+                repo_type="dataset",
+                local_dir=str(target),
+            )
+
+    # The download runs on a single daemon thread while this thread polls the
+    # stop flag, so a stop lands quickly and an abandoned download never
+    # blocks interpreter shutdown.
+    worker = threading.Thread(target=download_all, name="dataset-download", daemon=True)
+    worker.start()
+    try:
+        while worker.is_alive():
+            if _stop_requested.is_set():
                 raise DownloadCancelled
-            # Poll so a stop lands quickly even while one large file is downloading.
-            done, pending = wait(pending, timeout=0.2, return_when=FIRST_COMPLETED)
-            for future in done:
-                future.result()
+            worker.join(timeout=0.2)
     finally:
-        pool.shutdown(wait=False, cancel_futures=True)
         _stop_requested.clear()
     return str(target)
 
