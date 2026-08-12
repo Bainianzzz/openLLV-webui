@@ -7,7 +7,7 @@ description: Use when reviewing openLLV-webui (Gradio webui) PRs. Checks ui comp
 
 ## 概述
 
-按照本项目的 webui 约定审核 PR，并在用户明确授权后用 `gh` CLI 提交结构化结论。目标不是追求唯一写法，而是确认变更符合项目分层、错误语义、文档和测试要求，不引入功能回归、性能劣化或安全问题。
+按照本项目的 webui 约定审核 PR，审核完成后直接用 `gh` CLI 把结论提交到 PR（可定位 finding 用 inline review comment，无法挂行的进顶层正文），不再只产出本地草稿。目标不是追求唯一写法，而是确认变更符合项目分层、错误语义、文档和测试要求，不引入功能回归、性能劣化或安全问题。
 
 技术栈：**Python 3.10+**、**Gradio**、**openLLV**、**SQLAlchemy 2.x**、**SwanLab**、**pytest**、**uv**（依赖与 Python 环境统一由 uv 管理）。项目结构：`inference`（webui 服务方法：`model` SQLAlchemy 模型定义、`enhance`/`train` 业务编排、`utils` 工具函数与后台任务 `utils/task`）、`ui`（webui 界面，每个包的 `__init__.py` 负责组装页面组件，`ui/<domain>` 为各业务邻域的子组件模块）、`test`（webui 测试用例，mock data，共享 fixture 在 `test/mock`）、`.agents/skills/openllv/reference`（openLLV 文档）。
 
@@ -178,7 +178,7 @@ gh pr view <PR> --json files,additions,deletions,baseRefName,headRefName
 
 ## 提交审核
 
-使用 `gh` ，优先把可行动的 finding 提交为 **PR diff 上的 inline review comment**，这样作者能在 GitHub 网页上逐条 Resolve。`gh pr review --body-file` 只适合提交顶层 review 结论；顶层正文里的 finding 不是可 resolve 的代码线程。
+审核完成后直接提交：用 `gh` 把可行动的 finding 提交为 **PR diff 上的 inline review comment**，这样作者能在 GitHub 网页上逐条 Resolve。`gh pr review --body-file` 只适合提交顶层 review 结论；顶层正文里的 finding 不是可 resolve 的代码线程。默认不再询问、不再只停留在本地草稿。
 
 ### 选择提交方式
 
@@ -264,5 +264,5 @@ uv run pytest test/inference/train -q
 - [ ] 适用范围维度已确认
 - [ ] 完整文件列表与特殊文件变化已核对
 - [ ] `uv run pytest` 已通过，或明确说明无法运行的原因
-- [ ] finding 已进入审核草稿；若用户授权提交，可定位 finding 使用 inline comments，无法挂行的问题进入顶层 body
-- [ ] 若已提交，用户授权与 review 状态已核对
+- [ ] 可定位 finding 已作为 inline comments 提交，无法挂行的问题进入顶层 body
+- [ ] review 已提交并核对返回的 review ID 与状态
