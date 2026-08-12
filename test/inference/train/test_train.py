@@ -102,6 +102,26 @@ def test_train_success_records_lifecycle(
     assert task.finish_at is not None
 
 
+def test_train_with_swanlab_key_uses_batch_trainer(db_session) -> None:
+    """A configured SwanLab key routes training through BatchSwanLabTrainer."""
+    outcome = {"checkpoint_dir": "checkpoints/ZeroDCE_CommonDataset", "best_val_loss": 0.1}
+
+    with mock_config(
+        run_module, swanlab_api_key="fake-key", swanlab_project="test-project"
+    ):
+        with mock.patch("inference.train.monitor.BatchSwanLabTrainer") as trainer_cls:
+            trainer_cls.return_value.train.return_value = outcome
+            worker = _start()
+            assert worker is not None
+            assert worker.result() == db_session.task.checkpoint_dir
+
+    trainer_cls.assert_called_once()
+    assert trainer_cls.call_args.kwargs["swan_api_key"] == "fake-key"
+    assert trainer_cls.call_args.kwargs["swan_project"] == "test-project"
+    assert trainer_cls.call_args.kwargs["swan_experiment"] == "ZeroDCE"
+    trainer_cls.return_value.train.assert_called_once()
+
+
 def test_train_failure_records_error(db_session) -> None:
     """A failed run records its error message and no checkpoint."""
     with mock.patch.object(llv, "train", side_effect=RuntimeError("boom")):

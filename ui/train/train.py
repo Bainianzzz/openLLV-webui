@@ -56,6 +56,7 @@ def run_training(
     if worker is None:
         yield "Training is already running."
         return
+    yield "Training started…"
     outcome = worker.result()
     if worker.status is Status.STOPPED:
         yield "Training stopped."
