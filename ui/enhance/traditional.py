@@ -34,22 +34,18 @@ def _run_batch(
     params: str,
     input_dir: str,
     output_dir: str,
-    max_workers: int,
-    queue_size: int,
 ) -> str:
     """Run batch enhancement on a folder and report how many images were processed."""
     if not Path(input_dir).is_dir():
         return f"Input folder does not exist: {input_dir}"
-    count = batch_enhance(
+    output = batch_enhance(
         method,
         input_dir,
         output_dir,
         "traditional",
         params=parse_params(params),
-        max_workers=max_workers,
-        queue_size=queue_size,
     )
-    return f"Enhanced {count} images"
+    return f"Enhanced to {output}"
 
 
 def build_traditional_section(algorithms: list) -> dict:
@@ -115,18 +111,6 @@ def build_traditional_section(algorithms: list) -> dict:
                         value=str(config().output_dir),
                         label="Output Folder",
                     )
-                    max_workers = gr.Number(
-                        value=4,
-                        label="Workers",
-                        precision=0,
-                        minimum=1,
-                    )
-                    queue_size = gr.Number(
-                        value=10,
-                        label="Queue Size",
-                        precision=0,
-                        minimum=1,
-                    )
 
             batch_btn = gr.Button("Batch Enhance", variant="primary", interactive=False)
             status = gr.Textbox(label="Status", interactive=False)
@@ -149,8 +133,6 @@ def build_traditional_section(algorithms: list) -> dict:
                     batch_params,
                     input_dir,
                     output_dir,
-                    max_workers,
-                    queue_size,
                 ],
                 outputs=[status],
             )
@@ -159,8 +141,6 @@ def build_traditional_section(algorithms: list) -> dict:
                 "params": batch_params,
                 "input_dir": input_dir,
                 "output_dir": output_dir,
-                "max_workers": max_workers,
-                "queue_size": queue_size,
                 "batch_button": batch_btn,
                 "status": status,
             }

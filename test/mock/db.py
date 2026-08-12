@@ -13,8 +13,9 @@ def mock_db() -> Generator[FakeSession, None, None]:
     """Patch the ``SessionLocal`` used by the enhancement core with a fake session.
 
     The enhancement core (``_enhance``) lives in the ``inference.enhance.enhance``
-    module, so the patch targets that module directly: the package-level
-    ``enhance`` attribute is the public function, not the module.
+    module and serves both single and batch runs, so the patch targets that
+    module directly: the package-level ``enhance`` attribute is the public
+    function, not the module.
 
     Yields the ``FakeSession`` so tests can inspect the recorded task
     (``session.task``) after running ``enhance``.

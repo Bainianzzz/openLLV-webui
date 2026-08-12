@@ -1,4 +1,4 @@
-"""Shared per-image enhancement core used by single and batch enhance."""
+"""Shared enhancement core used by single-image and folder runs."""
 
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -15,23 +15,26 @@ from inference.utils import save_image, to_pil
 
 def _enhance(
     method: str,
-    image: Image.Image,
+    source: str | Path,
     task_cls: Literal["traditional", "deepLearning"],
     model_path: str | None,
     params: Mapping[str, Any],
-    input_dir: str,
-    output_dir: Path,
-) -> Image.Image:
+    output_dir: str | Path,
+) -> Image.Image | str:
     """Run one enhancement, recording the run and saving the output.
 
-    ``input_dir`` is the source image's path, recorded as-is in the database;
-    the input image itself is never copied. The output is saved directly
-    under ``output_dir``.
+    ``source`` is an image file (single run, returns the enhanced PIL image)
+    or a folder (batch run, processed by ``llv.predict``, returns the output
+    folder path). The source path is recorded as-is in ``input_path``.
+    Output goes under ``output_dir``: a single image is saved with a
+    timestamped name, a folder keeps openLLV's own layout.
     """
+    source = Path(source)
+    output_dir = Path(output_dir)
     task_model = TraditionalTask if task_cls == "traditional" else DeepLearningTask
-    record = {
+    record: dict[str, Any] = {
         "method": method or model_path,
-        "input_path": input_dir,
+        "input_path": str(source),
     }
     if task_model is TraditionalTask:
         record["params"] = dict(params)
@@ -44,8 +47,26 @@ def _enhance(
         session.commit()
         task_id = task.id
 
+    result: Image.Image | str
+    output_path: str
     try:
-        enhanced, _ = llv.predict(method or model_path, image, save=False, **params)
+        if source.is_dir():
+            result = str(
+                llv.predict(
+                    method or model_path,
+                    source,
+                    output=output_dir,
+                    progress_bar=False,
+                    **params,
+                )
+            )
+            output_path = result
+        else:
+            enhanced, _ = llv.predict(
+                method or model_path, source, save=False, **params
+            )
+            result = to_pil(enhanced)
+            output_path = save_image(result, output_dir, image_name=source.name)
     except Exception as exc:
         with SessionLocal() as session:
             task = session.get(task_model, task_id)
@@ -57,34 +78,16 @@ def _enhance(
             session.commit()
         raise ValueError(f"Enhancement failed: {exc}") from exc
 
-    output = to_pil(enhanced)
     with SessionLocal() as session:
         task = session.get(task_model, task_id)
         if task is None:
             raise RuntimeError(f"Task {task_id} not found")
         task.status = "success"
-        task.output_path = save_image(
-            output, output_dir, image_name=Path(input_dir).name
-        )
+        task.output_path = output_path
         task.finish_at = datetime.now(timezone.utc)
         session.commit()
 
-    return output
+    return result
 
 
-def _batch_enhance(
-    method: str,
-    input_dir: Path,
-    output_dir: Path,
-    task_cls: Literal["traditional", "deepLearning"],
-    model_path: str | None,
-    params: Mapping[str, Any],
-) -> Image.Image:
-    """Load one batch image and run the shared enhancement core.
-
-    The source file path is recorded as ``input_path``.
-    """
-    image = to_pil(Image.open(input_dir))
-    return _enhance(
-        method, image, task_cls, model_path, params, str(input_dir), output_dir
-    )
+__all__ = ["_enhance"]

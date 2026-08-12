@@ -72,17 +72,16 @@ def test_enhance_failure_records_error(db_session) -> None:
     assert db_session.task.finish_at is not None
 
 
-def test_batch_enhance_records_each_image(db_session, tmp_path: Path) -> None:
-    """Batch enhancement records every processed image in the mock database."""
+def test_batch_enhance_records_one_run(db_session, tmp_path: Path) -> None:
+    """A batch run records one task with the input/output folders."""
     input_dir = tmp_path / "input"
     output_dir = tmp_path / "output"
     input_dir.mkdir()
     for i in range(5):
         copyfile(TEST_IMAGE, input_dir / f"img{i}.png")
 
-    predicted = np.full((4, 5, 3), 255, dtype=np.uint8)
-    with mock.patch.object(llv, "predict", return_value=(predicted, None)):
-        count = batch_enhance(
+    with mock.patch.object(llv, "predict", return_value=str(output_dir)) as predict:
+        output = batch_enhance(
             "Gamma",
             input_dir,
             output_dir,
@@ -90,5 +89,38 @@ def test_batch_enhance_records_each_image(db_session, tmp_path: Path) -> None:
             params={"gamma": 0.6},
         )
 
-    assert count == 5
-    assert len(db_session.tasks) == 5
+    predict.assert_called_once_with(
+        "Gamma",
+        input_dir,
+        output=output_dir,
+        progress_bar=False,
+        gamma=0.6,
+    )
+    assert output == str(output_dir)
+    assert len(db_session.tasks) == 1
+    task = db_session.task
+    assert task.status == "success"
+    assert task.input_path == str(input_dir)
+    assert task.output_path == str(output_dir)
+    assert task.params == {"gamma": 0.6}
+    assert task.finish_at is not None
+
+
+def test_batch_enhance_failure_records_error(db_session, tmp_path: Path) -> None:
+    """A failed batch run is recorded with its error message."""
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    copyfile(TEST_IMAGE, input_dir / "img0.png")
+
+    with (
+        pytest.raises(ValueError, match="Enhancement failed"),
+        mock.patch.object(llv, "predict", side_effect=RuntimeError("boom")),
+    ):
+        batch_enhance("Gamma", input_dir, output_dir, "traditional")
+
+    assert db_session.task.status == "failed"
+    assert db_session.task.error == "boom"
+    assert db_session.task.input_path == str(input_dir)
+    assert db_session.task.output_path is None
+    assert db_session.task.finish_at is not None

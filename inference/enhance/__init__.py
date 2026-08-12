@@ -6,12 +6,10 @@ from typing import Any, Literal
 
 from PIL import Image
 
-from inference.utils import TaskPool, config, to_pil
+from inference.utils import config
 
-from .enhance import _batch_enhance, _enhance
+from .enhance import _enhance
 from .records import list_records
-
-_IMAGE_SUFFIXES = frozenset({".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"})
 
 
 def enhance(
@@ -31,15 +29,10 @@ def enhance(
     """
     if image is None:
         raise ValueError("Please upload an image first.")
-    return _enhance(
-        method,
-        to_pil(Image.open(image)),
-        task_cls,
-        model_path,
-        params,
-        image,
-        config().output_dir,
-    )
+    result = _enhance(method, image, task_cls, model_path, params, config().output_dir)
+    if not isinstance(result, Image.Image):
+        raise TypeError("Single-image enhancement did not return an image")
+    return result
 
 
 def batch_enhance(
@@ -49,44 +42,17 @@ def batch_enhance(
     task_cls: Literal["traditional", "deepLearning"],
     model_path: str | None = None,
     params: Mapping[str, Any] = {},
-    max_workers: int = 4,
-    queue_size: int = 10,
-) -> int:
-    """Enhance every image under ``input_dir`` through a per-run thread pool.
+) -> str:
+    """Enhance every image under ``input_dir`` with a single folder prediction.
 
-    One enhancement task is created per image and submitted to a ``TaskPool``
-    created for this run; each run records its original input path and saves
-    its output directly under ``output_dir``. Returns the number of images
-    submitted.
+    Delegates to the shared ``_enhance`` with the folder as the source; one
+    task row records the run with the input/output folders. Returns the
+    output folder path.
     """
-    input_dir = Path(input_dir)
-    output_dir = Path(output_dir)
-    images = sorted(
-        path
-        for path in input_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in _IMAGE_SUFFIXES
-    )
-    pool = TaskPool(
-        max_workers=max_workers, queue_size=queue_size, name="batch-enhance"
-    )
-    try:
-        futures = [
-            pool.submit(
-                _batch_enhance,
-                method,
-                path,
-                output_dir,
-                task_cls,
-                model_path=model_path,
-                params=params,
-            )
-            for path in images
-        ]
-        for future in futures:
-            future.result()
-    finally:
-        pool.stop()
-    return len(futures)
+    result = _enhance(method, input_dir, task_cls, model_path, params, output_dir)
+    if not isinstance(result, str):
+        raise TypeError("Folder prediction did not return the output folder")
+    return result
 
 
 __all__ = ["batch_enhance", "enhance", "list_records"]

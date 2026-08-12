@@ -21,22 +21,18 @@ def _run_batch(
     model_file: str | None,
     input_dir: str,
     output_dir: str,
-    max_workers: int,
-    queue_size: int,
 ) -> str:
     """Run batch enhancement on a folder and report how many images were processed."""
     if not Path(input_dir).is_dir():
         return f"Input folder does not exist: {input_dir}"
-    count = batch_enhance(
+    output = batch_enhance(
         method,
         input_dir,
         output_dir,
         "deepLearning",
         model_path=model_file,
-        max_workers=max_workers,
-        queue_size=queue_size,
     )
-    return f"Enhanced {count} images"
+    return f"Enhanced to {output}"
 
 
 def build_deep_learning_section(models: list) -> dict:
@@ -104,18 +100,6 @@ def build_deep_learning_section(models: list) -> dict:
                         value=str(config().output_dir),
                         label="Output Folder",
                     )
-                    max_workers = gr.Number(
-                        value=4,
-                        label="Workers",
-                        precision=0,
-                        minimum=1,
-                    )
-                    queue_size = gr.Number(
-                        value=10,
-                        label="Queue Size",
-                        precision=0,
-                        minimum=1,
-                    )
 
             batch_btn = gr.Button("Batch Enhance", variant="primary", interactive=False)
             status = gr.Textbox(label="Status", interactive=False)
@@ -138,8 +122,6 @@ def build_deep_learning_section(models: list) -> dict:
                     batch_model_file,
                     input_dir,
                     output_dir,
-                    max_workers,
-                    queue_size,
                 ],
                 outputs=[status],
             )
@@ -148,8 +130,6 @@ def build_deep_learning_section(models: list) -> dict:
                 "model_file": batch_model_file,
                 "input_dir": input_dir,
                 "output_dir": output_dir,
-                "max_workers": max_workers,
-                "queue_size": queue_size,
                 "batch_button": batch_btn,
                 "status": status,
             }
