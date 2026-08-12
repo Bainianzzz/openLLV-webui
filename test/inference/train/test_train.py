@@ -66,6 +66,7 @@ def test_train_success_records_lifecycle(db_session) -> None:
 
     train.assert_called_once_with(
         "ZeroDCE",
+        dataset="CommonDataset",
         root_dir="/data/datasets/common",
         epochs=10,
         batch_size=4,
@@ -103,6 +104,7 @@ def test_train_output_dir_forwarded(db_session) -> None:
 
     train.assert_called_once_with(
         "ZeroDCE",
+        dataset="CommonDataset",
         root_dir="/data/datasets/common",
         epochs=10,
         batch_size=4,

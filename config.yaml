@@ -13,4 +13,4 @@ datasets:
   dir: datasets
   # Hugging Face dataset repos the web UI can download (name -> repo id)
   download:
-    LOLv1: okita-souji/LOLv1
+    LOLv1: bainianzzz/lolv1

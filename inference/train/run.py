@@ -27,8 +27,9 @@ def run(
     Called from ``train.start`` on a background daemon thread. Inserts a
     ``TrainingTask`` (status ``running``), runs ``llv.train``, updates the
     record to ``success``/``failed``/``stopped``, and returns the final
-    status message. ``output_dir`` selects where checkpoints are saved; a
-    ``None`` value lets openLLV use its default location. The recorded
+    status message. ``dataset`` is the registered dataset name passed to the
+    trainer; ``output_dir`` selects where checkpoints are saved; a ``None``
+    value lets openLLV use its default location. The recorded
     ``checkpoint_dir`` is stored as an absolute path.
     """
     with SessionLocal() as session:
@@ -50,6 +51,7 @@ def run(
     try:
         outcome = llv.train(
             model,
+            dataset=dataset,
             root_dir=root_dir,
             epochs=epochs,
             batch_size=batch_size,
