@@ -30,7 +30,9 @@ def run(
     status message. ``dataset`` is the registered dataset name passed to the
     trainer; ``output_dir`` selects where checkpoints are saved; a ``None``
     value lets openLLV use its default location. The recorded
-    ``checkpoint_dir`` is stored as an absolute path. When
+    ``checkpoint_dir`` is stored as an absolute path. A run stopped with
+    ``KeyboardInterrupt`` records the checkpoint dir only when weight files
+    are found on disk. When
     ``config().swanlab_api_key`` is set, training runs through
     ``BatchSwanLabTrainer`` so the session is recorded in SwanLab; otherwise
     the plain ``llv.train`` path is used.
@@ -90,7 +92,7 @@ def run(
             "stopped",
             "Training stopped.",
             None,
-            None,
+            _find_checkpoint_dir(model, dataset, output_dir),
         )
     except Exception as exc:  # noqa: BLE001 - any trainer failure becomes a status message
         status, message, error, checkpoint = (
@@ -119,6 +121,25 @@ def run(
             session.commit()
 
     return message
+
+
+def _find_checkpoint_dir(
+    model: str, dataset: str, output_dir: str | None
+) -> str | None:
+    """Return the checkpoint output dir when an interrupted run left weights.
+
+    A stopped run never returns the trainer's ``checkpoint_dir``, so the
+    location is reconstructed from the layout openLLV uses: weights are
+    written as ``*.pt`` under ``<output_dir>/checkpoints/`` and the recorded
+    value is ``<output_dir>`` itself. A ``None`` ``output_dir`` means the
+    openLLV default ``checkpoints/<Model>_<Dataset>``; ``None`` is returned
+    when no weight file exists.
+    """
+    base = Path(output_dir) if output_dir else Path("checkpoints", f"{model}_{dataset}")
+    weights = base / "checkpoints"
+    if not any(weights.glob("*.pt")) and not any(weights.glob("*.pth")):
+        return None
+    return str(base.resolve())
 
 
 __all__ = ["run"]

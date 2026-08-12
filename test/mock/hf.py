@@ -12,8 +12,9 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from importlib import import_module
 from pathlib import Path
-from types import SimpleNamespace
 from unittest import mock
+
+from .config import mock_config
 
 # Simulated duration of a dataset download (seconds).
 DOWNLOAD_SECONDS = 20
@@ -38,9 +39,7 @@ def mock_hf_download(datasets_dir: Path) -> Generator[threading.Event, None, Non
 
     module = import_module("inference.train.download")
     with (
-        mock.patch.object(
-            module, "config", return_value=SimpleNamespace(datasets_dir=datasets_dir)
-        ),
+        mock_config(module, datasets_dir=datasets_dir),
         mock.patch.object(module, "list_repo_files", return_value=["low/0.jpg"]),
         mock.patch.object(module, "hf_hub_download", side_effect=download_file),
     ):

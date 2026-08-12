@@ -5,11 +5,13 @@
 - ``mock_train_db``: mock the training session so run writes are recorded in memory.
 - ``mock_train_records_db``: mock the training-records session so queries return matching rows.
 - ``mock_hf_download``: mock the dataset download with a timed stand-in.
+- ``mock_config``: mock the runtime config so tests never touch ``config.yaml``.
 - ``TEST_IMAGE``: shared tiny test photo used by tests that need an image.
 """
 
 from pathlib import Path
 
+from .config import mock_config
 from .db import mock_db, mock_records_db, mock_train_db, mock_train_records_db
 from .hf import mock_hf_download
 
@@ -17,6 +19,7 @@ TEST_IMAGE = str(Path(__file__).resolve().parents[1] / "assets" / "tiny.png")
 
 __all__ = [
     "TEST_IMAGE",
+    "mock_config",
     "mock_db",
     "mock_hf_download",
     "mock_records_db",
