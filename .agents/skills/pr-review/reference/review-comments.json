@@ -1,0 +1,12 @@
+{
+  "event": "REQUEST_CHANGES",
+  "body": "<按 reference/review-body.md 生成并进行 JSON 转义>",
+  "comments": [
+    {
+      "path": "ui/enhance/xxx.py",
+      "line": 42,
+      "side": "RIGHT",
+      "body": "**必须修改:** 这里忽略了数据库错误会让用户看到无意义的结果。\n\n影响：…\n\n建议：检查错误并返回明确提示，测试覆盖该分支。"
+    }
+  ]
+}

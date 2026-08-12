@@ -1,4 +1,4 @@
-"""In-memory mocks for the database operations used by ``inference.enhance``."""
+"""In-memory mocks for the database operations used by the inference services."""
 
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -12,16 +12,31 @@ from .session import FakeSession, QuerySession
 def mock_db() -> Generator[FakeSession, None, None]:
     """Patch the ``SessionLocal`` used by the enhancement core with a fake session.
 
-    The enhancement core (``_enhance``) lives in the ``inference.enhance.enhance``
-    module, so the patch targets that module directly: the package-level
-    ``enhance`` attribute is the public function, not the module.
+    The enhancement core (``_enhance``) records its task through the shared
+    ``inference.utils.task.TaskStorage``, so the patch targets that module.
 
     Yields the ``FakeSession`` so tests can inspect the recorded task
     (``session.task``) after running ``enhance``.
     """
     session = FakeSession()
-    enhance_module = import_module("inference.enhance.enhance")
-    with mock.patch.object(enhance_module, "SessionLocal", return_value=session):
+    storage_module = import_module("inference.utils.task.storage")
+    with mock.patch.object(storage_module, "SessionLocal", return_value=session):
+        yield session
+
+
+@contextmanager
+def mock_train_db() -> Generator[FakeSession, None, None]:
+    """Patch the ``SessionLocal`` used by the training runner with a fake session.
+
+    The training runner (``_train``) records its task through the shared
+    ``inference.utils.task.TaskStorage``, so the patch targets that module.
+
+    Yields the ``FakeSession`` so tests can inspect the recorded task
+    (``session.task``) after running ``start``/``pause``/``result``.
+    """
+    session = FakeSession()
+    storage_module = import_module("inference.utils.task.storage")
+    with mock.patch.object(storage_module, "SessionLocal", return_value=session):
         yield session
 
 
@@ -36,5 +51,21 @@ def mock_records_db(rows: list) -> Generator[QuerySession, None, None]:
     """
     session = QuerySession(rows)
     records_module = import_module("inference.enhance.records")
+    with mock.patch.object(records_module, "SessionLocal", return_value=session):
+        yield session
+
+
+@contextmanager
+def mock_train_records_db(rows: list) -> Generator[QuerySession, None, None]:
+    """Patch ``inference.train.records.SessionLocal`` with a fake session.
+
+    ``session.scalars`` returns ``rows`` filtered by the training search
+    fields (model/status/dataset/error), mirroring what ``list_records``
+    queries against the real engine.
+
+    Yields the ``QuerySession`` so tests can inspect it if needed.
+    """
+    session = QuerySession(rows, search_fields=("model", "status", "dataset", "error"))
+    records_module = import_module("inference.train.records")
     with mock.patch.object(records_module, "SessionLocal", return_value=session):
         yield session

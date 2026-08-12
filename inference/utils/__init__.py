@@ -1,6 +1,12 @@
 """Utility helpers for the inference package."""
 
+from .config import config
 from .image import save_image, to_pil
-from .task_pool import TaskPool
+from .swanlab import project_url
 
-__all__ = ["TaskPool", "save_image", "to_pil"]
+__all__ = [
+    "config",
+    "project_url",
+    "save_image",
+    "to_pil",
+]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import gradio as gr
 
-from inference.enhance import list_records
+from inference import list_enhance_records
 from ui.components import build_table, render_table
 
 TASK_TYPES = ["traditional", "deepLearning"]
@@ -42,7 +42,7 @@ def _records(task_type: str, search_field: str, search: str = "") -> str:
         TRADITIONAL_COLUMNS if task_type == "traditional" else DEEP_LEARNING_COLUMNS
     )
     return render_table(
-        list_records(task_type, search=search, search_field=search_field),
+        list_enhance_records(task_type, search=search, search_field=search_field),
         headers,
     )
 
@@ -73,7 +73,7 @@ def build_manage_section() -> dict:
         reset_btn = gr.Button("Reset", variant="secondary")
         refresh_btn = gr.Button("Refresh", variant="primary")
 
-    records = build_table(list_records("traditional"), TRADITIONAL_COLUMNS)
+    records = build_table(list_enhance_records("traditional"), TRADITIONAL_COLUMNS)
 
     reset_btn.click(
         fn=_reset,

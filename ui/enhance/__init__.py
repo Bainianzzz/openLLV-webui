@@ -56,9 +56,9 @@ def build_enhance() -> dict:
 
     available = llv.list_available()
     with gr.Tabs():
-        with gr.Tab("Traditional Algorithm"):
+        with gr.Tab("Traditional"):
             traditional = build_traditional_section(available["algorithms"])
-        with gr.Tab("Deep Learning Model"):
+        with gr.Tab("Deep Learning"):
             deep_learning = build_deep_learning_section(available["models"])
         with gr.Tab("Records"):
             manage = build_manage_section()

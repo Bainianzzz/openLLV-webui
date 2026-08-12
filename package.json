@@ -5,8 +5,7 @@
     "dev": "uv run gradio app.py",
     "app": "uv run python app.py",
     "prepare": "husky",
-    "test": "uv run pytest",
-    "docs": "sh scripts/sync-docs.sh"
+    "test": "uv run pytest"
   },
   "devDependencies": {
     "husky": "^9.1.7"

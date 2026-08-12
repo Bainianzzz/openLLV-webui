@@ -1,93 +1,73 @@
 """Enhancement service: run enhancement tasks and query their records."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Literal
 
 from PIL import Image
 
-from inference import OUTPUT_DIR
-from inference.utils import TaskPool, to_pil
+from inference.utils import config
+from inference.utils.task import Slot, Worker
 
-from .enhance import _batch_enhance, _enhance
 from .records import list_records
+from .run import _enhance
 
-_IMAGE_SUFFIXES = frozenset({".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"})
 
+class EnhanceWorker(Worker[Image.Image | str]):
+    """One enhancement run: ``pause``/``result`` control it.
 
-def enhance(
-    method: str,
-    image: str | None,
-    task_cls: Literal["traditional", "deepLearning"],
-    model_path: str | None = None,
-    params: Mapping[str, Any] = {},
-) -> Image.Image:
-    """Enhance one image through the method selected in the web UI.
-
-    ``image`` is the uploaded image's file path: it is opened for inference
-    and recorded as ``input_path`` without copying the file. ``task_cls``
-    selects the table the run is recorded into. A row is inserted when the run
-    starts (status ``pending``) and updated with the result when it finishes
-    (``success``/``failed``).
+    A single run returns the enhanced PIL image, a batch run returns the
+    output folder path. A task row is inserted when the run starts (status
+    ``pending``) and updated with the outcome when it finishes
+    (``success``/``failed``/``stopped``). A run is launched by an
+    :class:`EnhanceSlot`.
     """
-    if image is None:
-        raise ValueError("Please upload an image first.")
-    return _enhance(
-        method,
-        to_pil(Image.open(image)),
-        task_cls,
-        model_path,
-        params,
-        image,
-        OUTPUT_DIR,
-    )
+
+    def pause(self) -> bool | None:
+        """Stop the run on this worker; ``None`` idle, ``True`` stopped, ``False`` stopping."""
+        if not self.is_alive():
+            return None
+        return self.stop()
+
+    def result(self) -> Image.Image | str | None:
+        """Wait for the run on this worker to finish and return its outcome.
+
+        A single run returns the enhanced PIL image, a batch run returns the
+        output folder path; ``None`` means the run did not finish successfully.
+        """
+        self.join()
+        return self.outcome
 
 
-def batch_enhance(
-    method: str,
-    input_dir: str | Path,
-    output_dir: str | Path,
-    task_cls: Literal["traditional", "deepLearning"],
-    model_path: str | None = None,
-    params: Mapping[str, Any] = {},
-    max_workers: int = 4,
-    queue_size: int = 10,
-) -> int:
-    """Enhance every image under ``input_dir`` through a per-run thread pool.
+class EnhanceSlot(Slot[Image.Image | str]):
+    """One enhancement slot: ``start`` launches a run, ``pause``/``result`` control it.
 
-    One enhancement task is created per image and submitted to a ``TaskPool``
-    created for this run; each run records its original input path and saves
-    its output directly under ``output_dir``. Returns the number of images
-    submitted.
+    ``source`` is an image file for a single run or a folder for a batch run;
+    ``output_dir`` selects where the output goes (``None`` keeps
+    ``config().output_dir``).
     """
-    input_dir = Path(input_dir)
-    output_dir = Path(output_dir)
-    images = sorted(
-        path
-        for path in input_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in _IMAGE_SUFFIXES
-    )
-    pool = TaskPool(
-        max_workers=max_workers, queue_size=queue_size, name="batch-enhance"
-    )
-    try:
-        futures = [
-            pool.submit(
-                _batch_enhance,
-                method,
-                path,
-                output_dir,
-                task_cls,
-                model_path=model_path,
-                params=params,
-            )
-            for path in images
-        ]
-        for future in futures:
-            future.result()
-    finally:
-        pool.stop()
-    return len(futures)
+
+    def _spawn(
+        self,
+        method: str,
+        source: str | Path,
+        task_cls: Literal["traditional", "deepLearning"],
+        model_path: str | None = None,
+        params: Mapping[str, Any] | None = None,
+        output_dir: str | Path | None = None,
+    ) -> EnhanceWorker:
+        return EnhanceWorker(
+            _enhance,
+            method,
+            source,
+            task_cls,
+            model_path,
+            params or {},
+            output_dir or config().output_dir,
+            name="openllv-enhance",
+        )
 
 
-__all__ = ["batch_enhance", "enhance", "list_records"]
+__all__ = ["EnhanceSlot", "EnhanceWorker", "list_records"]

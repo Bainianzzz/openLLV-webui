@@ -3,15 +3,34 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
 import gradio as gr
 
-from inference import OUTPUT_DIR
-from inference.enhance import batch_enhance, enhance
+from inference import EnhanceSlot, EnhanceWorker, Status, config
 
 from . import example_images, image_display, method_choices
+
+# One slot per entry in this panel: the single and batch tabs run
+# independently, each owning its current worker.
+SINGLE_SLOT = EnhanceSlot()
+BATCH_SLOT = EnhanceSlot()
+
+
+def _make_stop(slot: EnhanceSlot) -> Callable[[], str]:
+    """Return the Stop-button handler for the worker in ``slot``."""
+
+    def stop() -> str:
+        state = slot.pause()
+        if state is None:
+            return "No enhancement is running."
+        if state:
+            return "Enhancement stopped."
+        return "Enhancement is stopping…"
+
+    return stop
 
 
 def parse_params(text: str | None) -> dict[str, Any]:
@@ -25,32 +44,71 @@ def parse_params(text: str | None) -> dict[str, Any]:
     return params
 
 
+def _status(worker: EnhanceWorker | None, batch: bool) -> str:
+    """Derive the status text of a finished run in this panel."""
+    if worker is None:
+        return "No enhancement has been started."
+    if worker.status is Status.SUCCESS:
+        return f"Enhanced to {worker.outcome}" if batch else "Enhancement finished."
+    if worker.status is Status.STOPPED:
+        return "Enhancement stopped."
+    if worker.status is Status.FAILED:
+        return f"Enhancement failed: {worker.error}"
+    return "No enhancement has been started."
+
+
 def _sync_batch_button(value: str | None) -> dict:
     """Return a button update enabled only when an input folder is provided."""
     return gr.update(interactive=bool(value and value.strip()))
 
 
-def _run_batch(
+def run_single_enhance(
+    method: str,
+    image: str | None,
+    params: str,
+) -> Iterator[tuple[str, Any]]:
+    """Start one enhancement run and stream its status and result image."""
+    if image is None:
+        yield "Please upload an image first.", gr.update()
+        return
+    worker = SINGLE_SLOT.start(
+        method,
+        image,
+        "traditional",
+        params=parse_params(params),
+    )
+    if worker is None:
+        yield "Enhancement is already running.", gr.update()
+        return
+    outcome = worker.result()
+    yield (
+        _status(worker, batch=False),
+        (outcome if outcome is not None else gr.update()),
+    )
+
+
+def run_batch(
     method: str,
     params: str,
     input_dir: str,
     output_dir: str,
-    max_workers: int,
-    queue_size: int,
-) -> str:
-    """Run batch enhancement on a folder and report how many images were processed."""
+) -> Iterator[str]:
+    """Start a batch run and stream its status."""
     if not Path(input_dir).is_dir():
-        return f"Input folder does not exist: {input_dir}"
-    count = batch_enhance(
+        yield f"Input folder does not exist: {input_dir}"
+        return
+    worker = BATCH_SLOT.start(
         method,
         input_dir,
-        output_dir,
         "traditional",
         params=parse_params(params),
-        max_workers=max_workers,
-        queue_size=queue_size,
+        output_dir=output_dir,
     )
-    return f"Enhanced {count} images"
+    if worker is None:
+        yield "Enhancement is already running."
+        return
+    worker.result()
+    yield _status(worker, batch=True)
 
 
 def build_traditional_section(algorithms: list) -> dict:
@@ -78,21 +136,28 @@ def build_traditional_section(algorithms: list) -> dict:
                     )
                 gr.Examples(examples=example_images(), inputs=image, label=".e.g")
 
-            enhance_btn = gr.Button("Enhance", variant="primary")
+            with gr.Row():
+                enhance_btn = gr.Button("Enhance", variant="primary")
+                stop_btn = gr.Button("Stop", variant="secondary")
+            status = gr.Textbox(label="Status", interactive=False)
 
             enhance_btn.click(
-                fn=lambda method, image, params: enhance(
-                    method, image, "traditional", params=parse_params(params)
-                ),
+                fn=run_single_enhance,
                 inputs=[method, image, params],
-                outputs=[output],
+                outputs=[status, output],
+            )
+            stop_btn.click(
+                fn=_make_stop(SINGLE_SLOT),
+                outputs=[status],
             )
             single = {
                 "method": method,
                 "params": params,
                 "image": image,
                 "output": output,
+                "status": status,
                 "enhance_button": enhance_btn,
+                "stop_button": stop_btn,
             }
 
         with gr.Tab("Batch"):
@@ -113,23 +178,15 @@ def build_traditional_section(algorithms: list) -> dict:
                         label="Input Folder",
                     )
                     output_dir = gr.Textbox(
-                        value=str(OUTPUT_DIR),
+                        value=str(config().output_dir),
                         label="Output Folder",
                     )
-                    max_workers = gr.Number(
-                        value=4,
-                        label="Workers",
-                        precision=0,
-                        minimum=1,
-                    )
-                    queue_size = gr.Number(
-                        value=10,
-                        label="Queue Size",
-                        precision=0,
-                        minimum=1,
-                    )
 
-            batch_btn = gr.Button("Batch Enhance", variant="primary", interactive=False)
+            with gr.Row():
+                batch_btn = gr.Button(
+                    "Batch Enhance", variant="primary", interactive=False
+                )
+                batch_stop_btn = gr.Button("Stop", variant="secondary")
             status = gr.Textbox(label="Status", interactive=False)
 
             input_dir.input(
@@ -144,15 +201,17 @@ def build_traditional_section(algorithms: list) -> dict:
             )
 
             batch_btn.click(
-                fn=_run_batch,
+                fn=run_batch,
                 inputs=[
                     batch_method,
                     batch_params,
                     input_dir,
                     output_dir,
-                    max_workers,
-                    queue_size,
                 ],
+                outputs=[status],
+            )
+            batch_stop_btn.click(
+                fn=_make_stop(BATCH_SLOT),
                 outputs=[status],
             )
             batch = {
@@ -160,9 +219,8 @@ def build_traditional_section(algorithms: list) -> dict:
                 "params": batch_params,
                 "input_dir": input_dir,
                 "output_dir": output_dir,
-                "max_workers": max_workers,
-                "queue_size": queue_size,
                 "batch_button": batch_btn,
+                "stop_button": batch_stop_btn,
                 "status": status,
             }
 

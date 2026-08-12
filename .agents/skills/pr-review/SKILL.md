@@ -1,20 +1,20 @@
 ---
 name: pr-review
-description: 在审核 openLLV-webui（Gradio webui）PR 时使用，检查 ui 组件、inference 服务方法、SQLAlchemy 模型、utils 工具函数、文档、测试、依赖变更与合并门禁。
+description: Use when reviewing openLLV-webui (Gradio webui) PRs. Checks ui components, inference service methods, SQLAlchemy models, utils helpers, SwanLab monitoring, docs, tests, dependency changes, and merge gates.
 ---
 
 # PR 审核 (openLLV-webui)
 
 ## 概述
 
-按照本项目的 webui 约定审核 PR，并在用户明确授权后用 `gh` CLI 提交结构化结论。目标不是追求唯一写法，而是确认变更符合项目分层、错误语义、文档和测试要求，不引入功能回归、性能劣化或安全问题。
+按照本项目的 webui 约定审核 PR，审核完成后直接用 `gh` CLI 把结论提交到 PR（可定位 finding 用 inline review comment，无法挂行的进顶层正文），不再只产出本地草稿。目标不是追求唯一写法，而是确认变更符合项目分层、错误语义、文档和测试要求，不引入功能回归、性能劣化或安全问题。
 
-技术栈：**Python 3.10+**、**Gradio**、**openLLV**、**SQLAlchemy 2.x**、**pytest**、**uv**（依赖与 Python 环境统一由 uv 管理）。项目结构：`inference`（webui 服务方法：`model` SQLAlchemy 模型定义、`utils` 工具函数）、`ui`（webui 界面，每个包的 `__init__.py` 负责组装页面组件，`ui/<domain>` 为各业务邻域的子组件模块）、`test`（webui 测试用例，mock data）、`docs`（openLLV 文档同步）、`scripts`（如 `sync-docs.sh` 同步 openLLV 文档）。
+技术栈：**Python 3.10+**、**Gradio**、**openLLV**、**SQLAlchemy 2.x**、**SwanLab**、**pytest**、**uv**（依赖与 Python 环境统一由 uv 管理）。项目结构：`inference`（webui 服务方法：`model` SQLAlchemy 模型定义、`enhance`/`train` 业务编排、`utils` 工具函数与后台任务 `utils/task`）、`ui`（webui 界面，每个包的 `__init__.py` 负责组装页面组件，`ui/<domain>` 为各业务邻域的子组件模块）、`test`（webui 测试用例，mock data，共享 fixture 在 `test/mock`）、`.agents/skills/openllv/reference`（openLLV 文档）。
 
 适用：PR 合并前审核、`gh pr diff` / `gh pr review`、检查 ui 组件、inference 服务方法、模型、utils、文档、测试、依赖变更与合并门禁。
-不适用：无 PR 上下文的本地单文件解释；openLLV 上游仓库的 PR（本仓库与上游仅通过 `scripts/sync-docs.sh` 同步 docs、依赖锁定对接）。
+不适用：无 PR 上下文的本地单文件解释；openLLV 上游仓库的 PR（本仓库与上游仅通过依赖锁定（`uv.lock`）对接）。
 
-> 参考技能：核对 Gradio API 用法用 `gradio` 技能，核对 openLLV 用法用 `openllv` 技能（不直接阅读 openLLV 源码），核对数据库写法用 `sqlalchemy` 技能。
+> 参考技能：核对 Gradio API 用法用 `gradio` 技能，核对 openLLV 用法用 `openllv` 技能（不直接阅读 openLLV 源码），核对数据库写法用 `sqlalchemy` 技能，核对 SwanLab 用法用 `swanlab-skill` 技能。
 
 ## 审核流程
 
@@ -41,7 +41,7 @@ gh pr view <PR> --json files,additions,deletions,baseRefName,headRefName
 适用条件：所有 PR。
 
 - 检查所有新增、修改、删除和重命名；新增顶层路径或无法识别的文件必须说明用途与执行方式。
-- 执行入口（`.husky/pre-commit`、`scripts/**`、`app.py`、`pyproject.toml` 与测试配置）不能仅因不在业务目录中而跳过。
+- 执行入口（`.husky/pre-commit`、`app.py`、`pyproject.toml` 与测试配置）不能仅因不在业务目录中而跳过。
 - 检查 import-time side effect 和配置驱动入口，避免小型配置变更激活未修改代码中的危险路径。
 
 ### 1. ui 组件与页面组装
@@ -116,7 +116,7 @@ gh pr view <PR> --json files,additions,deletions,baseRefName,headRefName
 
 ### 4. utils 工具函数
 
-适用条件：`inference/utils/**` 有变更。
+适用条件：`inference/utils/**`（含后台线程与任务存储 `utils/task`）有变更。
 
 业务：
 
@@ -136,7 +136,7 @@ gh pr view <PR> --json files,additions,deletions,baseRefName,headRefName
 
 ### 5. 文档
 
-适用条件：`docs/**`、`README.md` 有变更。
+适用条件：`.agents/skills/openllv/reference/**`、`README.md` 有变更。
 
 - 新增功能/参数/行为变更同步更新对应文档（参数名、默认值、支持列表、示例）。
 - 教程/说明性文档与实际行为一致，示例可运行。
@@ -178,7 +178,7 @@ gh pr view <PR> --json files,additions,deletions,baseRefName,headRefName
 
 ## 提交审核
 
-默认只生成并向用户展示审核草稿。只有用户明确授权提交当前 PR 的 review 后，才使用 `gh` 写入 GitHub；授权检查 PR 不等于授权提交 review。优先把可行动的 finding 提交为 **PR diff 上的 inline review comment**，这样作者能在 GitHub 网页上逐条 Resolve。`gh pr review --body-file` 只适合提交顶层 review 结论；顶层正文里的 finding 不是可 resolve 的代码线程。
+审核完成后直接提交：用 `gh` 把可行动的 finding 提交为 **PR diff 上的 inline review comment**，这样作者能在 GitHub 网页上逐条 Resolve。`gh pr review --body-file` 只适合提交顶层 review 结论；顶层正文里的 finding 不是可 resolve 的代码线程。默认不再询问、不再只停留在本地草稿。
 
 ### 选择提交方式
 
@@ -212,22 +212,7 @@ gh api --method POST repos/{owner}/{repo}/pulls/<PR>/reviews --input /tmp/pr-rev
 
 提交后核对 API 返回的 review ID 与状态；权限不足或提交失败时不得把本地草稿报告为已提交。
 
-JSON 结构：
-
-```json
-{
-  "event": "REQUEST_CHANGES",
-  "body": "<按下方审核正文结构生成并进行 JSON 转义>",
-  "comments": [
-    {
-      "path": "ui/enhance/xxx.py",
-      "line": 42,
-      "side": "RIGHT",
-      "body": "**必须修改:** 这里忽略了数据库错误会让用户看到无意义的结果。\n\n影响：…\n\n建议：检查错误并返回明确提示，测试覆盖该分支。"
-    }
-  ]
-}
-```
+JSON 结构见 `reference/review-comments.json`，逐条替换 `comments[]` 后提交。
 
 如果没有 inline finding，仅提交顶层 review。审核正文含 Markdown、引号或特殊字符时用 `--body-file`：
 
@@ -237,56 +222,7 @@ gh pr review <PR> --approve --body-file <review-body>
 gh pr review <PR> --comment --body-file <review-body>
 ```
 
-正文结构：
-
-```markdown
-## 审核结论: 通过 / 要求修改 / 评论
-
-## 本次 PR 解决的问题
-
-<一句话概述>
-
-## 审核范围
-
-- [x] 通用执行面与仓库配置: <详情>
-- [x] ui 组件与页面组装: <是/否 - 详情>
-- [x] inference 服务方法: <是/否 - 详情>
-- [x] SQLAlchemy 模型/数据库: <是/否 - 详情>
-- [x] utils 工具函数: <是/否 - 详情>
-- [x] 文档: <是/否 - 详情>
-- [x] 测试覆盖: <是/否 - 详情>
-- [x] 依赖与配置: <是/否 - 详情>
-
-## 发现 (Findings)
-
-### <问题标题>
-
-- 严重性：阻塞
-- 位置：`ui/xxx.py:42`
-- 说明：...
-- 影响：...
-- 建议：...
-
-### <必须修改的问题标题>
-
-- 严重性：必须修改
-- 位置：`inference/xxx.py:42`
-- 说明：...
-- 影响：...
-- 建议：...
-
-### <建议项标题>
-
-- 严重性：建议
-- 位置：`inference/xxx.py:42`
-- 说明：...
-- 建议：...
-
-## 验证
-
-- [ ] uv run pytest
-- [ ] 其他专项验证：<命令或不适用原因>
-```
+正文结构见 `reference/review-body.md`。
 
 ## 验证要求
 
@@ -299,12 +235,13 @@ uv run pytest
 按变更补充：
 
 ```bash
-uv run pytest test/inference -q
-uv run pytest test/utils -q
+uv run pytest test/inference/enhance -q
+uv run pytest test/inference/train -q
 ```
 
 - 项目规则：不要自行启动 `gradio` 运行冒烟测试，审核结论中直接给出最简要的测试点即可。
-- 测试均为 mock data；涉及数据库操作使用 `test/mock/db.py` 的 `mock_db` 上下文管理器。
+- 测试均为 mock data；涉及数据库操作使用 `test/mock` 导出的 `mock_*` 上下文管理器（`mock_db` / `mock_records_db` / `mock_train_db` / `mock_train_records_db`），另有 `mock_hf_download`（数据集下载）与 `mock_config`（配置）供测试使用。
+- 本地运行 pytest 前需保证 `config.yaml` 存在（`inference` 包 import 时即读取配置并创建 engine）；缺失时执行 `cp example.config.yaml config.yaml`，与 CI（`.github/workflows/test.yml`）一致。
 - 如果本地环境因依赖下载或 sandbox 缓存不可用导致无法运行，审核结论必须写明原因，并尽量运行更窄的包级测试。CI/pre-commit 失败时优先以 CI 日志为准。
 
 ## 代码规范门禁
@@ -327,5 +264,5 @@ uv run pytest test/utils -q
 - [ ] 适用范围维度已确认
 - [ ] 完整文件列表与特殊文件变化已核对
 - [ ] `uv run pytest` 已通过，或明确说明无法运行的原因
-- [ ] finding 已进入审核草稿；若用户授权提交，可定位 finding 使用 inline comments，无法挂行的问题进入顶层 body
-- [ ] 若已提交，用户授权与 review 状态已核对
+- [ ] 可定位 finding 已作为 inline comments 提交，无法挂行的问题进入顶层 body
+- [ ] review 已提交并核对返回的 review ID 与状态

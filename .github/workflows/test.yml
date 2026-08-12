@@ -25,5 +25,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Prepare config
+        # config.yaml is gitignored and not present in the repo; tests need it
+        run: cp example.config.yaml config.yaml
+
       - name: Run tests
         run: uv run pytest -q

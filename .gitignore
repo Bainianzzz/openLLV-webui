@@ -13,6 +13,12 @@ env/
 
 # Runtime data (SQLite database, uploaded and generated images)
 data/
+datasets/
+checkpoints/
+**/swanlog/
+
+# Local configuration (may contain secrets such as the SwanLab API key)
+config.yaml
 
 # Node / husky
 node_modules/
