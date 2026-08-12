@@ -30,7 +30,9 @@ def start(
     can stop it. A ``None`` device lets openLLV pick the best available
     device and a ``None`` ``output_dir`` keeps its default checkpoint
     location. A ``TrainingTask`` row is inserted when the run starts (status
-    ``running``) and updated with the outcome when it finishes.
+    ``running``) and updated with the outcome when it finishes. Whether the
+    session is recorded in SwanLab is decided by ``config().swanlab_api_key``
+    inside the runner.
     """
     global _train_thread, _train_status
     with _lock:

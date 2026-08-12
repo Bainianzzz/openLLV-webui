@@ -14,3 +14,8 @@ datasets:
   # Hugging Face dataset repos the web UI can download (name -> repo id)
   download:
     LOLv1: bainianzzz/lolv1
+
+swanlab:
+  # SwanLab API key used for experiment recording; can also be entered in
+  # the Extension tab at runtime (overrides this value in memory)
+  api_key:

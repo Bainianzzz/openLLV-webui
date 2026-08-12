@@ -7,7 +7,7 @@ from pathlib import Path
 
 import openLLV as llv
 
-from inference import SessionLocal
+from inference import SessionLocal, config
 from inference.model import TrainingTask
 
 
@@ -30,7 +30,10 @@ def run(
     status message. ``dataset`` is the registered dataset name passed to the
     trainer; ``output_dir`` selects where checkpoints are saved; a ``None``
     value lets openLLV use its default location. The recorded
-    ``checkpoint_dir`` is stored as an absolute path.
+    ``checkpoint_dir`` is stored as an absolute path. When
+    ``config().swanlab_api_key`` is set, training runs through
+    ``BatchSwanLabTrainer`` so the session is recorded in SwanLab; otherwise
+    the plain ``llv.train`` path is used.
     """
     with SessionLocal() as session:
         task = TrainingTask(
@@ -49,21 +52,39 @@ def run(
         task_id = task.id
 
     try:
-        outcome = llv.train(
-            model,
-            dataset=dataset,
-            root_dir=root_dir,
-            epochs=epochs,
-            batch_size=batch_size,
-            lr=lr,
-            resize=resize,
-            device=device,
-            output_dir=output_dir or None,
-            # Packaged configs default to multiprocessing workers; spawning them
-            # from this background thread re-runs the app's ``__main__`` and
-            # fails with a ``'__main__'`` error on macOS. Load data in-process.
-            num_workers=0,
-        )
+        if config().swanlab_api_key:
+            from inference.train.monitor import BatchSwanLabTrainer
+
+            outcome = BatchSwanLabTrainer(
+                model,
+                dataset=dataset,
+                root_dir=root_dir,
+                epochs=epochs,
+                batch_size=batch_size,
+                lr=lr,
+                resize=resize,
+                device=device,
+                output_dir=output_dir or None,
+                num_workers=0,
+                swan_api_key=config().swanlab_api_key,
+                swan_experiment=model,
+            ).train()
+        else:
+            outcome = llv.train(
+                model,
+                dataset=dataset,
+                root_dir=root_dir,
+                epochs=epochs,
+                batch_size=batch_size,
+                lr=lr,
+                resize=resize,
+                device=device,
+                output_dir=output_dir or None,
+                # Packaged configs default to multiprocessing workers; spawning them
+                # from this background thread re-runs the app's ``__main__`` and
+                # fails with a ``'__main__'`` error on macOS. Load data in-process.
+                num_workers=0,
+            )
     except KeyboardInterrupt:
         status, message, error, checkpoint = (
             "stopped",

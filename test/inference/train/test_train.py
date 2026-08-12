@@ -9,10 +9,24 @@ import openLLV as llv
 import pytest
 
 import inference.train.train as train_module
+from inference import config
 from inference.train.train import pause, result, start
 from test.mock import mock_train_db
 
 TRAIN_ARGS = ("ZeroDCE", "CommonDataset", "/data/datasets/common", 10, 4, 1e-4, 512)
+
+
+@pytest.fixture(autouse=True)
+def reset_swanlab_key():
+    """Pin the SwanLab key to unset for every test in this module.
+
+    The runner switches to ``BatchSwanLabTrainer`` whenever
+    ``config().swanlab_api_key`` is set, which would bypass the mocked
+    ``llv.train``; these tests exercise the plain training path, so the key
+    is cleared regardless of the local ``config.yaml``.
+    """
+    config().swanlab_api_key = None
+    yield
 
 
 @pytest.fixture(autouse=True)

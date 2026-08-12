@@ -6,12 +6,12 @@ from collections.abc import Iterator
 
 import gradio as gr
 
-from inference import pause, result, start
+from inference import config, pause, result, start
 
 from . import name_choices
 
 
-def _run_training(
+def run_training(
     root_dir: str,
     dataset: str,
     model: str,
@@ -21,6 +21,7 @@ def _run_training(
     resize: int,
     device: str,
     output_dir: str,
+    swanlab_api_key: str,
 ) -> Iterator[str]:
     """Start one training session and stream its outcome.
 
@@ -28,8 +29,11 @@ def _run_training(
     the start immediately and the second blocks until the session finishes
     (naturally or through the Stop button). ``dataset``, ``root_dir``, and
     ``output_dir`` are recorded with the training record; an empty
-    ``output_dir`` keeps openLLV's default checkpoint location.
+    ``output_dir`` keeps openLLV's default checkpoint location. The
+    ``swanlab_api_key`` is stored on the shared config object (overriding the
+    ``config.yaml`` value in memory) so the runner picks it up.
     """
+    config().set_swanlab_api_key(swanlab_api_key)
     yield start(
         model,
         dataset,
@@ -44,19 +48,17 @@ def _run_training(
     yield result()
 
 
-def _stop_training() -> str:
+def stop_training() -> str:
     """Stop the running training session."""
     return pause()
 
 
-def build_training_section(
-    root_dir: gr.Textbox, dataset: gr.Dropdown, models: list
-) -> dict:
+def build_training_section(models: list) -> dict:
     """Create the training components.
 
-    ``root_dir`` is the dataset root picked in the dataset-preparation
-    section and ``dataset`` is its name; both are recorded with the training
-    record. Hyperparameters can be tuned before starting training.
+    Hyperparameters can be tuned before starting training; the dataset root
+    and name come from the dataset-preparation section and are wired into
+    the Train button by ``build_train``.
     """
     choices = name_choices(models)
 
@@ -79,23 +81,6 @@ def build_training_section(
             train_btn = gr.Button("Train", variant="primary")
             stop_btn = gr.Button("Stop", variant="stop")
         status = gr.Textbox(label="Status", interactive=False)
-
-    train_btn.click(
-        fn=_run_training,
-        inputs=[
-            root_dir,
-            dataset,
-            model,
-            epochs,
-            batch_size,
-            lr,
-            resize,
-            device,
-            output_dir,
-        ],
-        outputs=[status],
-    )
-    stop_btn.click(fn=_stop_training, outputs=[status])
 
     return {
         "model": model,
