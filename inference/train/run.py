@@ -24,7 +24,7 @@ def _train(
 ) -> str:
     """Execute one training session, recording its lifecycle.
 
-    Called from ``train.start`` on a background daemon thread. Inserts a
+    Called from ``TrainSlot.start`` on a background daemon thread. Inserts a
     ``TrainingTask`` (status ``running``), runs ``llv.train``, updates the
     record to ``success``/``failed``/``stopped``, and returns the absolute
     checkpoint directory on success. A failure or ``KeyboardInterrupt`` is

@@ -2,24 +2,37 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
 import gradio as gr
 
-from inference import BackgroundWorker, config, result_enhance, start_enhance
+from inference import EnhanceSlot, EnhanceWorker, config
 
-from . import (
-    WORKER_SLOTS,
-    _make_stop_enhance,
-    example_images,
-    image_display,
-    method_choices,
-)
+from . import example_images, image_display, method_choices
+
+# One slot per entry in this panel: the single and batch tabs run
+# independently, each owning its current worker.
+SINGLE_SLOT = EnhanceSlot()
+BATCH_SLOT = EnhanceSlot()
 
 
-def _status(worker: BackgroundWorker | None, batch: bool) -> str:
+def _make_stop(slot: EnhanceSlot) -> Callable[[], str]:
+    """Return the Stop-button handler for the worker in ``slot``."""
+
+    def stop() -> str:
+        state = slot.pause()
+        if state is None:
+            return "No enhancement is running."
+        if state:
+            return "Enhancement stopped."
+        return "Enhancement is stopping…"
+
+    return stop
+
+
+def _status(worker: EnhanceWorker | None, batch: bool) -> str:
     """Derive the status text of a finished run in this panel."""
     if worker is None:
         return "No enhancement has been started."
@@ -46,8 +59,7 @@ def run_single_enhance(
     if image is None:
         yield "Please upload an image first.", gr.update()
         return
-    worker = start_enhance(
-        WORKER_SLOTS["deep_learning_single"],
+    worker = SINGLE_SLOT.start(
         method,
         image,
         "deepLearning",
@@ -56,8 +68,7 @@ def run_single_enhance(
     if worker is None:
         yield "Enhancement is already running.", gr.update()
         return
-    WORKER_SLOTS["deep_learning_single"] = worker
-    outcome = result_enhance(worker)
+    outcome = worker.result()
     yield (
         _status(worker, batch=False),
         (outcome if outcome is not None else gr.update()),
@@ -74,8 +85,7 @@ def run_batch(
     if not Path(input_dir).is_dir():
         yield f"Input folder does not exist: {input_dir}"
         return
-    worker = start_enhance(
-        WORKER_SLOTS["deep_learning_batch"],
+    worker = BATCH_SLOT.start(
         method,
         input_dir,
         "deepLearning",
@@ -85,8 +95,7 @@ def run_batch(
     if worker is None:
         yield "Enhancement is already running."
         return
-    WORKER_SLOTS["deep_learning_batch"] = worker
-    result_enhance(worker)
+    worker.result()
     yield _status(worker, batch=True)
 
 
@@ -128,7 +137,7 @@ def build_deep_learning_section(models: list) -> dict:
                 outputs=[status, output],
             )
             stop_btn.click(
-                fn=_make_stop_enhance("deep_learning_single"),
+                fn=_make_stop(SINGLE_SLOT),
                 outputs=[status],
             )
             single = {
@@ -192,7 +201,7 @@ def build_deep_learning_section(models: list) -> dict:
                 outputs=[status],
             )
             batch_stop_btn.click(
-                fn=_make_stop_enhance("deep_learning_batch"),
+                fn=_make_stop(BATCH_SLOT),
                 outputs=[status],
             )
             batch = {

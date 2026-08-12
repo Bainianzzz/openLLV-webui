@@ -5,39 +5,32 @@ from __future__ import annotations
 from huggingface_hub import hf_hub_download, list_repo_files
 
 from inference.utils import config
-from inference.utils.threads import BackgroundWorker
+from inference.utils.threads import Slot, Worker
 
 
-def start(
-    worker: BackgroundWorker[str] | None,
-    repo: str,
-) -> BackgroundWorker[str] | None:
-    """Start downloading ``repo`` on the given worker slot.
+class DownloadWorker(Worker[str]):
+    """One dataset download: ``pause``/``result`` control it.
 
-    ``worker`` is the slot's current worker (``None`` when idle): when it is
-    still running the start is rejected and ``None`` is returned; otherwise a
-    new daemon worker is started and returned for the caller to store back
-    into the slot.
+    A download is launched by a :class:`DownloadSlot`.
     """
-    if worker is not None and worker.is_alive():
-        return None
-    worker = BackgroundWorker(_download, repo, name="dataset-download")
-    worker.start()
-    return worker
+
+    def pause(self) -> bool | None:
+        """Stop the download on this worker; ``None`` idle, ``True`` stopped, ``False`` stopping."""
+        if not self.is_alive():
+            return None
+        return self.stop()
+
+    def result(self) -> str | None:
+        """Wait for the download on this worker to finish and return its local dir."""
+        self.join()
+        return self.outcome
 
 
-def pause(worker: BackgroundWorker[str] | None) -> bool | None:
-    """Stop the download on ``worker``; ``None`` idle, ``True`` stopped, ``False`` stopping."""
-    if worker is None or not worker.is_alive():
-        return None
-    return worker.stop()
+class DownloadSlot(Slot[str]):
+    """One download slot: ``start`` launches a download, ``pause``/``result`` control it."""
 
-
-def result(worker: BackgroundWorker[str] | None) -> str | None:
-    """Wait for the download on ``worker`` to finish and return its local dir."""
-    if worker is not None:
-        worker.join()
-    return worker.outcome if worker is not None else None
+    def _spawn(self, repo: str) -> DownloadWorker:
+        return DownloadWorker(_download, repo, name="dataset-download")
 
 
 def _download(repo: str) -> str:
@@ -59,4 +52,4 @@ def _download(repo: str) -> str:
     return str(target)
 
 
-__all__ = ["pause", "result", "start"]
+__all__ = ["DownloadSlot", "DownloadWorker"]

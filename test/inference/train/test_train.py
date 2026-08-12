@@ -9,7 +9,7 @@ import openLLV as llv
 import pytest
 
 import inference.train.run as run_module
-from inference.train import pause, result, start
+from inference.train import TrainSlot
 from test.mock import mock_config, mock_train_db
 
 TRAIN_ARGS = ("ZeroDCE", "CommonDataset", "/data/datasets/common", 10, 4, 1e-4, 512)
@@ -36,9 +36,10 @@ def db_session():
         yield session
 
 
-def _start(device: str | None = None, output_dir: str | None = None):
+def _start(device: str | None = None, output_dir: str | None = None, slot=None):
     """Start training with the shared fixture arguments."""
-    return start(None, *TRAIN_ARGS, device, output_dir)
+    slot = slot or TrainSlot()
+    return slot.start(*TRAIN_ARGS, device, output_dir)
 
 
 def _blocking_train(entered: threading.Event):
@@ -68,7 +69,7 @@ def test_train_success_records_lifecycle(
     with mock.patch.object(llv, "train", return_value=outcome) as train:
         worker = _start(output_dir=output_dir)
         assert worker is not None
-        assert result(worker) == db_session.task.checkpoint_dir
+        assert worker.result() == db_session.task.checkpoint_dir
         assert worker.error is None
         assert not worker.cancelled
 
@@ -105,7 +106,7 @@ def test_train_failure_records_error(db_session) -> None:
     with mock.patch.object(llv, "train", side_effect=RuntimeError("boom")):
         worker = _start("cuda")
         assert worker is not None
-        assert result(worker) is None
+        assert worker.result() is None
 
     assert isinstance(worker.error, RuntimeError)
     assert db_session.task.status == "failed"
@@ -130,8 +131,8 @@ def test_pause_records_stopped(db_session, checkpoint) -> None:
         assert worker is not None
         assert entered.wait(5)
         assert db_session.task.status == "running"  # recorded when training starts
-        assert pause(worker) is True
-        assert result(worker) is None
+        assert worker.pause() is True
+        assert worker.result() is None
 
     assert worker.cancelled
     assert db_session.task.status == "stopped"
@@ -168,20 +169,38 @@ def test_start_while_running_is_rejected(db_session) -> None:
     """A second start on the same slot while training runs is rejected."""
     entered = threading.Event()
     with mock.patch.object(llv, "train", side_effect=_blocking_train(entered)):
-        worker = _start()
+        slot = TrainSlot()
+        worker = _start(slot=slot)
         assert worker is not None
         assert entered.wait(5)
-        assert start(worker, *TRAIN_ARGS, None, None) is None
-        assert pause(worker) is True
+        assert _start(slot=slot) is None
+        assert worker.pause() is True
 
     assert len(db_session.tasks) == 1
 
 
-def test_result_without_training() -> None:
-    """``result`` reports when no session has ever been started."""
-    assert result(None) is None
+def test_pause_after_finish(db_session) -> None:
+    """``pause`` reports idle once the session has finished."""
+    outcome = {
+        "checkpoint_dir": "checkpoints/ZeroDCE_CommonDataset",
+        "best_val_loss": 0.123,
+    }
+    with mock.patch.object(llv, "train", return_value=outcome):
+        worker = _start()
+        assert worker is not None
+        worker.result()
+    assert worker.pause() is None
 
 
-def test_pause_without_training() -> None:
-    """``pause`` reports when no session is running."""
-    assert pause(None) is None
+def test_result_after_finish(db_session) -> None:
+    """``result`` on a finished worker returns its checkpoint dir again."""
+    outcome = {
+        "checkpoint_dir": "checkpoints/ZeroDCE_CommonDataset",
+        "best_val_loss": 0.123,
+    }
+    with mock.patch.object(llv, "train", return_value=outcome):
+        worker = _start()
+        assert worker is not None
+        first = worker.result()
+    assert first is not None
+    assert worker.result() == first

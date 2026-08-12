@@ -6,9 +6,11 @@ from collections.abc import Iterator
 
 import gradio as gr
 
-from inference import config, pause_download, result_download, start_download
+from inference import DownloadSlot, config
 
-from . import WORKER_SLOTS
+# The download slot: ``run_download`` starts a download on it so ``run_stop``
+# can pause it and a new run is rejected while the current one is in flight.
+DOWNLOAD_SLOT = DownloadSlot()
 
 
 def run_download(dataset: str, local_path: str) -> Iterator[tuple[dict, str, str]]:
@@ -20,14 +22,11 @@ def run_download(dataset: str, local_path: str) -> Iterator[tuple[dict, str, str
     on failure.
     """
     yield gr.update(interactive=False), "Downloading…", local_path
-    worker = start_download(
-        WORKER_SLOTS["download"], config().managed_datasets[dataset]
-    )
+    worker = DOWNLOAD_SLOT.start(config().managed_datasets[dataset])
     if worker is None:
         yield gr.update(interactive=True), "Download is already running.", local_path
         return
-    WORKER_SLOTS["download"] = worker
-    outcome = result_download(worker)
+    outcome = worker.result()
     if outcome is not None:
         yield gr.update(interactive=True), f"Downloaded to {outcome}", outcome
     elif worker.cancelled:
@@ -42,7 +41,7 @@ def run_download(dataset: str, local_path: str) -> Iterator[tuple[dict, str, str
 
 def run_stop() -> str:
     """Stop the in-flight download and report the outcome."""
-    state = pause_download(WORKER_SLOTS["download"])
+    state = DOWNLOAD_SLOT.pause()
     if state is None:
         return "No download is running."
     if state:

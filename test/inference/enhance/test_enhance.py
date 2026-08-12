@@ -11,7 +11,7 @@ import openLLV as llv
 import pytest
 from PIL import Image
 
-from inference.enhance import pause, result, start
+from inference.enhance import EnhanceSlot
 from test.mock import TEST_IMAGE, mock_db
 
 
@@ -38,15 +38,14 @@ def test_enhance_deep_learning(db_session) -> None:
     predicted = np.full((4, 5, 3), 255, dtype=np.uint8)
 
     with mock.patch.object(llv, "predict", return_value=(predicted, None)) as predict:
-        worker = start(
-            None,
+        worker = EnhanceSlot().start(
             "ZeroDCE",
             TEST_IMAGE,
             "deepLearning",
             model_path="models/zero_dce.pt",
         )
         assert worker is not None
-        outcome = result(worker)
+        outcome = worker.result()
 
     predict.assert_called_once_with("ZeroDCE", mock.ANY, save=False)
     assert isinstance(outcome, Image.Image)
@@ -68,9 +67,11 @@ def test_enhance_traditional(db_session) -> None:
     predicted = np.full((4, 5, 3), 255, dtype=np.uint8)
 
     with mock.patch.object(llv, "predict", return_value=(predicted, None)):
-        worker = start(None, "Gamma", TEST_IMAGE, "traditional", params={"gamma": 0.6})
+        worker = EnhanceSlot().start(
+            "Gamma", TEST_IMAGE, "traditional", params={"gamma": 0.6}
+        )
         assert worker is not None
-        result(worker)
+        worker.result()
 
     assert worker.error is None
     assert db_session.task.method == "Gamma"
@@ -83,9 +84,9 @@ def test_enhance_traditional(db_session) -> None:
 def test_enhance_failure_records_error(db_session) -> None:
     """A failed run is recorded with its error message."""
     with mock.patch.object(llv, "predict", side_effect=RuntimeError("boom")):
-        worker = start(None, "SomeMethod", TEST_IMAGE, "deepLearning")
+        worker = EnhanceSlot().start("SomeMethod", TEST_IMAGE, "deepLearning")
         assert worker is not None
-        assert result(worker) is None
+        assert worker.result() is None
 
     assert isinstance(worker.error, RuntimeError)
     assert db_session.task.status == "failed"
@@ -102,8 +103,7 @@ def test_batch_enhance_records_one_run(db_session, tmp_path: Path) -> None:
         copyfile(TEST_IMAGE, input_dir / f"img{i}.png")
 
     with mock.patch.object(llv, "predict", return_value=str(output_dir)) as predict:
-        worker = start(
-            None,
+        worker = EnhanceSlot().start(
             "Gamma",
             input_dir,
             "traditional",
@@ -111,7 +111,7 @@ def test_batch_enhance_records_one_run(db_session, tmp_path: Path) -> None:
             output_dir=output_dir,
         )
         assert worker is not None
-        assert result(worker) == str(output_dir)
+        assert worker.result() == str(output_dir)
 
     predict.assert_called_once_with(
         "Gamma",
@@ -137,9 +137,11 @@ def test_batch_enhance_failure_records_error(db_session, tmp_path: Path) -> None
     copyfile(TEST_IMAGE, input_dir / "img0.png")
 
     with mock.patch.object(llv, "predict", side_effect=RuntimeError("boom")):
-        worker = start(None, "Gamma", input_dir, "traditional", output_dir=output_dir)
+        worker = EnhanceSlot().start(
+            "Gamma", input_dir, "traditional", output_dir=output_dir
+        )
         assert worker is not None
-        assert result(worker) is None
+        assert worker.result() is None
 
     assert isinstance(worker.error, RuntimeError)
     assert db_session.task.status == "failed"
@@ -153,11 +155,11 @@ def test_pause_stops_running_enhance(db_session) -> None:
     """Pausing interrupts a running run and records it as stopped."""
     entered = threading.Event()
     with mock.patch.object(llv, "predict", side_effect=_blocking_predict(entered)):
-        worker = start(None, "Gamma", TEST_IMAGE, "traditional")
+        worker = EnhanceSlot().start("Gamma", TEST_IMAGE, "traditional")
         assert worker is not None
         assert entered.wait(5)
-        assert pause(worker) is True
-        assert result(worker) is None
+        assert worker.pause() is True
+        assert worker.result() is None
 
     assert worker.cancelled
     assert db_session.task.status == "stopped"
@@ -169,20 +171,31 @@ def test_start_while_running_is_rejected(db_session) -> None:
     """A second start on the same slot while a run is in flight is rejected."""
     entered = threading.Event()
     with mock.patch.object(llv, "predict", side_effect=_blocking_predict(entered)):
-        worker = start(None, "Gamma", TEST_IMAGE, "traditional")
+        slot = EnhanceSlot()
+        worker = slot.start("Gamma", TEST_IMAGE, "traditional")
         assert worker is not None
         assert entered.wait(5)
-        assert start(worker, "Gamma", TEST_IMAGE, "traditional") is None
-        assert pause(worker) is True
+        assert slot.start("Gamma", TEST_IMAGE, "traditional") is None
+        assert worker.pause() is True
 
     assert len(db_session.tasks) == 1
 
 
-def test_pause_without_enhance() -> None:
-    """``pause`` reports when no run is in flight."""
-    assert pause(None) is None
+def test_pause_after_finish(db_session) -> None:
+    """``pause`` reports idle once the run has finished."""
+    predicted = np.full((4, 5, 3), 255, dtype=np.uint8)
+    with mock.patch.object(llv, "predict", return_value=(predicted, None)):
+        worker = EnhanceSlot().start("Gamma", TEST_IMAGE, "traditional")
+        assert worker is not None
+        worker.result()
+    assert worker.pause() is None
 
 
-def test_result_without_enhance() -> None:
-    """``result`` reports when no run has ever been started."""
-    assert result(None) is None
+def test_result_after_finish(db_session) -> None:
+    """``result`` on a finished worker returns its outcome again."""
+    predicted = np.full((4, 5, 3), 255, dtype=np.uint8)
+    with mock.patch.object(llv, "predict", return_value=(predicted, None)):
+        worker = EnhanceSlot().start("Gamma", TEST_IMAGE, "traditional")
+        assert worker is not None
+        assert worker.result() is not None
+    assert worker.result() is not None

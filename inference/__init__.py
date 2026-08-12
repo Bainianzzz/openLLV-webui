@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from .model import Base
 from .utils import config, project_url
-from .utils.threads import BackgroundWorker
+from .utils.threads import Slot, Worker
 
 _cfg = config()
 
@@ -20,35 +20,27 @@ def init_db() -> None:
     Base.metadata.create_all(engine)
 
 
+from .enhance import EnhanceSlot, EnhanceWorker
 from .enhance import list_records as list_enhance_records
-from .enhance import pause as pause_enhance
-from .enhance import result as result_enhance
-from .enhance import start as start_enhance
+from .train import DownloadSlot, DownloadWorker, TrainSlot, TrainWorker
 from .train import list_records as list_train_records
-from .train import pause as pause_train
-from .train import pause_download, result_download, start_download
-from .train import result as result_train
-from .train import start as start_train
 
 __all__ = [  # noqa: RUF022 - ordered by domain, not alphabetically
     # init
     "init_db",
     # utils
     "config",
-    "BackgroundWorker",
+    "Slot",
+    "Worker",
     "project_url",
     # enhance
-    "start_enhance",
-    "pause_enhance",
-    "result_enhance",
+    "EnhanceSlot",
+    "EnhanceWorker",
     "list_enhance_records",
     # train
-    "start_train",
-    "pause_train",
-    "result_train",
+    "TrainSlot",
+    "TrainWorker",
+    "DownloadSlot",
+    "DownloadWorker",
     "list_train_records",
-    # download
-    "start_download",
-    "pause_download",
-    "result_download",
 ]

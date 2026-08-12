@@ -6,9 +6,14 @@ from collections.abc import Iterator
 
 import gradio as gr
 
-from inference import config, pause_train, result_train, start_train
+from inference import TrainSlot, config
 
-from . import WORKER_SLOTS, name_choices
+from . import name_choices
+
+# The training slot: ``run_training`` starts a session on it so
+# ``stop_training`` can pause it and a new run is rejected while the current
+# one is still in flight.
+TRAIN_SLOT = TrainSlot()
 
 
 def run_training(
@@ -37,8 +42,7 @@ def run_training(
     """
     config().set_swanlab_api_key(swanlab_api_key)
     config().set_swanlab_project(swanlab_project)
-    worker = start_train(
-        WORKER_SLOTS["train"],
+    worker = TRAIN_SLOT.start(
         model,
         dataset,
         root_dir,
@@ -52,8 +56,7 @@ def run_training(
     if worker is None:
         yield "Training is already running."
         return
-    WORKER_SLOTS["train"] = worker
-    outcome = result_train(worker)
+    outcome = worker.result()
     if worker.cancelled:
         yield "Training stopped."
     elif worker.error is not None:
@@ -64,7 +67,7 @@ def run_training(
 
 def stop_training() -> str:
     """Stop the running training session."""
-    state = pause_train(WORKER_SLOTS["train"])
+    state = TRAIN_SLOT.pause()
     if state is None:
         return "No training is running."
     if state:
