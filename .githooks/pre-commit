@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+# Run backend checks only when the commit affects backend code, tests, or Python dependencies.
+if git diff --cached --quiet -- \
+  backend \
+  test \
+  pyproject.toml \
+  uv.lock \
+  example.config.yaml
+then
+  exit 0
+fi
+
+exec uv run pytest -q

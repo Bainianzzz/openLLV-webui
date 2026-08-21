@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+.ruff_cache/
 .eggs/
 build/
 dist/
@@ -20,9 +21,8 @@ swanlog/
 # Local configuration (may contain secrets such as the SwanLab API key)
 config.yaml
 
-# Node / husky
+# Node
 node_modules/
-.husky/_
 
 # IDE / OS
 .idea/

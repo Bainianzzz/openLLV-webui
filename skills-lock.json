@@ -12,6 +12,25 @@
       "sourceType": "github",
       "skillPath": "skills/fastapi-patterns/SKILL.md",
       "computedHash": "88b3727902263469db5fb9a4f170714ab9e6d5e49d4c959d98420d009fca3e30"
+    },
+    "swanlab-skill": {
+      "source": "modelscope.cn",
+      "sourceUrl": "https://www.modelscope.cn/skills/SwanLab/swanlab-skill",
+      "sourceType": "well-known",
+      "computedHash": "9cbb0644276eba1dfbc16144ef03b5563e913f7675e28f96456c608e3e34ef76",
+      "wellKnownDigest": "sha256:5536f3e17fc0a751e3befb4d73aa0eaa67149ce103a3560b62070faa7ac9c693"
+    },
+    "tailwind-v4": {
+      "source": "mastra-ai/mastra",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/tailwind-v4/SKILL.md",
+      "computedHash": "5a9f44a4151a8020309435f6f7d36e7b8ef1e66b00e0ad962cad677cd5c3155a"
+    },
+    "vue-patterns": {
+      "source": "affaan-m/ECC",
+      "sourceType": "github",
+      "skillPath": "skills/vue-patterns/SKILL.md",
+      "computedHash": "0fd03b3c1f40323f61b65f6033cdb6e332e8367cbccb11b2b02159f5a10679ba"
     }
   }
 }
