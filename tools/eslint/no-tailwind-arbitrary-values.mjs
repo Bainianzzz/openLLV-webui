@@ -2,7 +2,18 @@ const ruleName = "local/no-tailwind-arbitrary-values";
 const message = "Prefer a Tailwind preset utility over this arbitrary value.";
 
 export function arbitraryUtility(token) {
-  return token.startsWith("[") || /-\[[^\]]+\]/.test(token);
+  // Arbitrary variants are how shadcn components target primitive states and
+  // descendants. Only flag arbitrary values such as min-h-[...] or bg-[...].
+  if (
+    token.startsWith("[") ||
+    token.startsWith("data-[") ||
+    token.startsWith("group-[") ||
+    token.startsWith("peer-[")
+  ) {
+    return false;
+  }
+
+  return /-\[[^\]]+\]/.test(token);
 }
 
 export function tokensFromText(text) {

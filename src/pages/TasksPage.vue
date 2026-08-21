@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../components/ui/empty";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import { Skeleton } from "../components/ui/skeleton";
 import type { TaskKind, TaskStatus } from "@/types/tasks";
 import { useTasks } from "../features/tasks/useTasks";
 
@@ -85,7 +87,7 @@ void loadTasks();
 
   <Card class="overflow-hidden">
     <CardHeader
-      class="gap-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0"
+      class="gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div>
         <CardTitle>Task history</CardTitle>
@@ -148,15 +150,13 @@ void loadTasks();
             <TableRow v-if="loading"
               ><TableCell
                 colspan="6"
-                class="h-32 text-center text-muted-foreground"
-                >Loading tasks…</TableCell
+                class="h-32"
+                ><div class="flex flex-col gap-2 px-4"><Skeleton class="h-4 w-1/3" /><Skeleton class="h-4 w-2/3" /></div></TableCell
               ></TableRow
             >
             <TableRow v-else-if="!items.length"
-              ><TableCell
-                colspan="6"
-                class="h-32 text-center text-muted-foreground"
-                >No tasks match these filters.</TableCell
+              ><TableCell colspan="6" class="h-32"
+                ><Empty><EmptyHeader><EmptyTitle>No tasks found</EmptyTitle><EmptyDescription>No tasks match these filters.</EmptyDescription></EmptyHeader></Empty></TableCell
               ></TableRow
             >
             <TableRow v-for="item in items" v-else :key="item.id">

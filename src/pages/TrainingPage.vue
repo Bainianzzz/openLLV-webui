@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import {
@@ -59,7 +60,7 @@ const {
         >
       </CardHeader>
       <CardContent class="grid gap-5 sm:grid-cols-2">
-        <div class="space-y-2 sm:col-span-2">
+        <div class="flex flex-col gap-2 sm:col-span-2">
           <Label for="training-model">Model</Label>
           <Select v-model="form.model" :disabled="loadingOptions">
             <SelectTrigger id="training-model" class="w-full"
@@ -76,7 +77,7 @@ const {
           </Select>
         </div>
 
-        <div class="space-y-2 sm:col-span-2">
+        <div class="flex flex-col gap-2 sm:col-span-2">
           <Label for="training-dataset">Available dataset</Label>
           <Select
             v-model="form.datasetId"
@@ -103,7 +104,7 @@ const {
           </p>
         </div>
 
-        <div class="space-y-2">
+        <div class="flex flex-col gap-2">
           <Label for="training-epochs">Epochs</Label
           ><Input
             id="training-epochs"
@@ -114,7 +115,7 @@ const {
             required
           />
         </div>
-        <div class="space-y-2">
+        <div class="flex flex-col gap-2">
           <Label for="training-batch-size">Batch size</Label
           ><Input
             id="training-batch-size"
@@ -125,7 +126,7 @@ const {
             required
           />
         </div>
-        <div class="space-y-2">
+        <div class="flex flex-col gap-2">
           <Label for="training-learning-rate">Learning rate</Label
           ><Input
             id="training-learning-rate"
@@ -136,7 +137,7 @@ const {
             required
           />
         </div>
-        <div class="space-y-2">
+        <div class="flex flex-col gap-2">
           <Label for="training-resize">Resize</Label
           ><Input
             id="training-resize"
@@ -148,7 +149,7 @@ const {
           />
         </div>
 
-        <div class="space-y-2 sm:col-span-2">
+        <div class="flex flex-col gap-2 sm:col-span-2">
           <Label for="training-device">Device</Label>
           <Select v-model="form.device" :disabled="loadingOptions">
             <SelectTrigger id="training-device" class="w-full"
@@ -167,7 +168,7 @@ const {
       </CardContent>
     </Card>
 
-    <div class="space-y-6 xl:col-span-2">
+    <div class="flex flex-col gap-6 xl:col-span-2">
       <Card>
         <CardHeader>
           <CardTitle>SwanLab monitoring</CardTitle>
@@ -176,20 +177,16 @@ const {
             server.</CardDescription
           >
         </CardHeader>
-        <CardContent class="space-y-5">
-          <label
-            class="flex cursor-pointer items-center gap-3 text-sm font-medium focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
-          >
-            <input
+        <CardContent class="flex flex-col gap-5">
+          <Label class="flex cursor-pointer items-center gap-3 text-sm font-medium">
+            <Checkbox
               v-model="form.useSwanLab"
-              type="checkbox"
-              class="size-4 rounded border-input accent-primary"
               aria-label="Enable SwanLab for this run"
             />
             Enable SwanLab for this run
-          </label>
+          </Label>
           <template v-if="form.useSwanLab">
-            <div class="space-y-2">
+            <div class="flex flex-col gap-2">
               <Label for="swanlab-project">Project</Label
               ><Input
                 id="swanlab-project"
@@ -198,7 +195,7 @@ const {
                 required
               />
             </div>
-            <div class="space-y-2">
+            <div class="flex flex-col gap-2">
               <Label for="swanlab-experiment">Experiment</Label
               ><Input
                 id="swanlab-experiment"
@@ -240,7 +237,7 @@ const {
   </form>
 
   <Card v-if="task" class="mt-6">
-    <CardHeader class="flex-row items-start justify-between gap-4 space-y-0">
+      <CardHeader class="flex-row items-start justify-between gap-4">
       <div class="min-w-0">
         <CardTitle>Training run</CardTitle
         ><CardDescription class="mt-2 break-all font-mono">{{
@@ -249,7 +246,7 @@ const {
       </div>
       <Badge variant="secondary" class="capitalize">{{ task.status }}</Badge>
     </CardHeader>
-    <CardContent class="space-y-5">
+    <CardContent class="flex flex-col gap-5">
       <p v-if="task.message" class="text-sm text-muted-foreground">
         {{ task.message }}
       </p>
