@@ -590,79 +590,43 @@ SQLite 建议启用 foreign keys、WAL 和合理的 busy timeout。迁移到多 
 ```text
 openLLV-webui/
 |-- backend/
-|   |-- openllv_webui/
+|   |-- main.py                         # create_app、lifespan、router
+|   |-- api/
 |   |   |-- __init__.py
-|   |   |-- main.py                    # create_app、lifespan、router、前端静态资源
-|   |   |-- api/
-|   |   |   |-- __init__.py
-|   |   |   |-- dependencies.py        # Session、Settings、Supervisor 依赖
-|   |   |   |-- errors.py              # HTTP 错误映射
-|   |   |   |-- router.py              # /api/v1 聚合 router
-|   |   |   `-- routes/
-|   |   |       |-- __init__.py
-|   |   |       |-- artifacts.py
-|   |   |       |-- catalog.py
-|   |   |       |-- datasets.py
-|   |   |       |-- enhancements.py
-|   |   |       |-- health.py
-|   |   |       |-- tasks.py
-|   |   |       `-- trainings.py
-|   |   |-- core/
-|   |   |   |-- __init__.py
-|   |   |   |-- config.py              # 不可变设置、环境变量覆盖
-|   |   |   |-- logging.py
-|   |   |   `-- paths.py               # managed path 解析和越界检查
-|   |   |-- db/
-|   |   |   |-- __init__.py
-|   |   |   |-- base.py
-|   |   |   |-- session.py
-|   |   |   |-- queries.py             # 共享且确有复用的查询
-|   |   |   `-- models/
-|   |   |       |-- __init__.py
-|   |   |       |-- artifact.py
-|   |   |       |-- dataset.py
-|   |   |       |-- enhancement.py
-|   |   |       |-- task.py
-|   |   |       `-- training.py
-|   |   |-- schemas/
-|   |   |   |-- __init__.py
-|   |   |   |-- artifact.py
-|   |   |   |-- catalog.py
-|   |   |   |-- common.py
-|   |   |   |-- dataset.py
-|   |   |   |-- enhancement.py
-|   |   |   |-- task.py
-|   |   |   `-- training.py
-|   |   |-- services/
-|   |   |   |-- __init__.py
-|   |   |   |-- artifacts.py
-|   |   |   |-- catalog.py
-|   |   |   |-- datasets.py
-|   |   |   |-- enhancements.py
-|   |   |   |-- tasks.py
-|   |   |   `-- trainings.py
-|   |   |-- integrations/
-|   |   |   |-- __init__.py
-|   |   |   |-- huggingface.py
-|   |   |   |-- swanlab.py
-|   |   |   `-- openllv/
-|   |   |       |-- __init__.py
-|   |   |       |-- catalog.py
-|   |   |       |-- enhance.py
-|   |   |       `-- train.py
-|   |   `-- workers/
-|   |       |-- __init__.py
-|   |       |-- process.py              # 子进程统一入口
-|   |       |-- protocol.py             # TaskCommand / TaskEvent / ControlMessage
-|   |       |-- context.py              # WorkerContext / 本地取消状态
-|   |       |-- registry.py             # kind -> handler 注册表
-|   |       |-- supervisor.py           # 领取、slot、取消、恢复
-|   |       `-- handlers/
-|   |           |-- __init__.py
-|   |           |-- base.py             # TaskHandler / TaskResult
-|   |           |-- dataset_download.py
-|   |           |-- enhancement.py
-|   |           `-- training.py
+|   |   |-- dependencies.py             # Session、Settings、Supervisor 依赖
+|   |   |-- errors.py                   # HTTP 错误映射
+|   |   |-- router.py                   # /api/v1 聚合 router
+|   |   |-- services.py                 # API 用例编排
+|   |   |-- storage.py                  # artifact 存储服务
+|   |   `-- catalog.py                  # openLLV catalog 适配
+|   |-- db/
+|   |   |-- __init__.py
+|   |   |-- models.py
+|   |   `-- session.py
+|   |-- schemas/
+|   |   |-- __init__.py
+|   |   |-- artifacts.py
+|   |   |-- datasets.py
+|   |   |-- downloads.py
+|   |   |-- enhancements.py
+|   |   |-- tasks.py
+|   |   `-- training.py
+|   |-- services/
+|   |   `-- ...
+|   `-- workers/
+|       |-- __init__.py
+|       |-- process.py                 # 子进程统一入口
+|       |-- protocol.py                # TaskCommand / TaskEvent / ControlMessage
+|       |-- context.py                 # WorkerContext / 本地取消状态
+|       |-- registry.py                # kind -> handler 注册表
+|       |-- slot.py                    # 固定 slot 的进程句柄
+|       |-- supervisor.py              # 领取、slot、取消、恢复
+|       `-- handlers/
+|           |-- __init__.py
+|           |-- base.py                # TaskHandler / TaskResult
+|           |-- dataset_download.py
+|           |-- enhancement.py
+|           `-- training.py
 |   `-- tests/
 |       |-- api/
 |       |-- services/
@@ -930,7 +894,7 @@ FastAPI replicas -> PostgreSQL / external queue -> independent worker service
 - 迁移旧数据库记录。
 - 构建 Vue 生产资源并替换 Gradio 入口。
 - 更新 README、启动命令和部署说明。
-- 在功能与数据验证完成后再删除 `ui/`、旧 `inference` facade 和 `gradio` 依赖。
+- 前端尚未在本阶段实现；后续 Vue 前端接入时不恢复 Gradio UI。
 
 每个阶段都保持可测试和可回退，不在第一步同时重写 API、worker、数据库和全部页面。
 
