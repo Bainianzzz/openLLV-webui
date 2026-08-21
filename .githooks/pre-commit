@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+# Run frontend checks when the commit affects the root frontend project.
+if git diff --cached --quiet -- \
+  src \
+  components.json \
+  index.html \
+  package.json \
+  pnpm-lock.yaml \
+  vite.config.ts \
+  tsconfig.json \
+  tsconfig.app.json \
+  tsconfig.node.json
+then
+  exit 0
+fi
+
+exec pnpm test
