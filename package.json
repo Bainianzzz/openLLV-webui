@@ -8,10 +8,12 @@
     "build": "vite build",
     "test": "vitest run",
     "typecheck": "vue-tsc --build --pretty",
+    "format": "prettier --write src",
     "preview": "vite preview"
   },
   "dependencies": {
     "@lucide/vue": "^1.33.0",
+    "axios": "^1.19.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "reka-ui": "^2.10.3",
@@ -26,6 +28,7 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.4.11",
     "jsdom": "^30.0.1",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.1.12",
     "typescript": "~5.9.2",
     "vite": "^7.1.3",
