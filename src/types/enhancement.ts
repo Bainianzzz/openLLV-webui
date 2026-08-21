@@ -1,21 +1,22 @@
-import type { TaskSummary } from "../../api/types";
+import type { TaskSummary } from "@/types";
 
 export interface CatalogOption {
   name: string;
   aliases: string[];
 }
-
 export interface EnhancementCatalog {
   algorithms: CatalogOption[];
   models: CatalogOption[];
   devices: string[];
   forms?: {
     enhancement?: {
-      traditional_params?: Record<string, { type: string; minimum?: number; default?: number }>;
+      traditional_params?: Record<
+        string,
+        { type: string; minimum?: number; default?: number }
+      >;
     };
   };
 }
-
 export interface CreateEnhancementRequest {
   backend: "traditional" | "deep";
   method: string;
@@ -24,7 +25,7 @@ export interface CreateEnhancementRequest {
   params?: Record<string, unknown>;
   device?: string;
 }
-
-export type EnhancementTask = Pick<TaskSummary, "id" | "kind" | "status" | "created_at"> & {
-  kind: "enhancement";
-};
+export type EnhancementTask = Pick<
+  TaskSummary,
+  "id" | "kind" | "status" | "created_at"
+> & { kind: "enhancement" };

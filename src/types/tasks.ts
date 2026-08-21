@@ -1,8 +1,13 @@
-import type { Page, TaskDetail, TaskKind, TaskStatus, TaskSummary } from "../../api/types";
+import type {
+  Page,
+  TaskDetail,
+  TaskKind,
+  TaskStatus,
+  TaskSummary,
+} from "@/types";
 
 export type { TaskDetail, TaskKind, TaskStatus, TaskSummary };
 export type TaskPage = Page<TaskSummary>;
-
 export interface TaskListParams {
   page?: number;
   page_size?: number;

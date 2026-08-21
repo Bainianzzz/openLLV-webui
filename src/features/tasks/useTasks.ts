@@ -1,8 +1,17 @@
 import { computed, onUnmounted, ref } from "vue";
-import type { TaskDetail, TaskKind, TaskStatus, TaskSummary } from "./types";
-import { cancelTask, getTask, listTasks } from "./api";
+import type {
+  TaskDetail,
+  TaskKind,
+  TaskStatus,
+  TaskSummary,
+} from "@/types/tasks";
+import { cancelTask, getTask, listTasks } from "@/api/tasks";
 
-export const terminalTaskStatuses: TaskStatus[] = ["succeeded", "failed", "cancelled"];
+export const terminalTaskStatuses: TaskStatus[] = [
+  "succeeded",
+  "failed",
+  "cancelled",
+];
 
 export function isTerminalTaskStatus(status: TaskStatus): boolean {
   return terminalTaskStatuses.includes(status);
@@ -25,7 +34,9 @@ export function useTasks() {
   let listPollTimer: ReturnType<typeof setTimeout> | null = null;
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+  const pageCount = computed(() =>
+    Math.max(1, Math.ceil(total.value / pageSize.value)),
+  );
 
   async function loadTasks(nextPage = page.value): Promise<void> {
     if (listPollTimer !== null) clearTimeout(listPollTimer);
@@ -36,16 +47,26 @@ export function useTasks() {
     loading.value = true;
     error.value = null;
     try {
-      const result = await listTasks({ page: nextPage, page_size: pageSize.value, kind: kind.value, status: status.value }, controller.signal);
+      const result = await listTasks(
+        {
+          page: nextPage,
+          page_size: pageSize.value,
+          kind: kind.value,
+          status: status.value,
+        },
+        controller.signal,
+      );
       if (controller.signal.aborted) return;
       items.value = result.items;
       page.value = result.page;
       pageSize.value = result.page_size;
       total.value = result.total;
-      if (items.value.some((item) => !isTerminalTaskStatus(item.status))) scheduleListPoll();
+      if (items.value.some((item) => !isTerminalTaskStatus(item.status)))
+        scheduleListPoll();
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;
-      error.value = cause instanceof Error ? cause.message : "Unable to load tasks";
+      error.value =
+        cause instanceof Error ? cause.message : "Unable to load tasks";
     } finally {
       if (listController === controller) loading.value = false;
     }
@@ -55,7 +76,10 @@ export function useTasks() {
     listPollTimer = setTimeout(() => void loadTasks(page.value), 3000);
   }
 
-  async function setFilters(nextKind?: TaskKind, nextStatus?: TaskStatus): Promise<void> {
+  async function setFilters(
+    nextKind?: TaskKind,
+    nextStatus?: TaskStatus,
+  ): Promise<void> {
     kind.value = nextKind;
     status.value = nextStatus;
     await loadTasks(1);
@@ -75,8 +99,10 @@ export function useTasks() {
       task.value = result;
       return result;
     } catch (cause) {
-      if (cause instanceof DOMException && cause.name === "AbortError") return null;
-      detailError.value = cause instanceof Error ? cause.message : "Unable to load task";
+      if (cause instanceof DOMException && cause.name === "AbortError")
+        return null;
+      detailError.value =
+        cause instanceof Error ? cause.message : "Unable to load task";
       throw cause;
     } finally {
       if (detailController === controller) detailLoading.value = false;
@@ -116,5 +142,21 @@ export function useTasks() {
     stopPolling();
   });
 
-  return { items, page, total, pageCount, loading, error, kind, status, task, detailLoading, detailError, loadTasks, setFilters, loadTask, requestCancel };
+  return {
+    items,
+    page,
+    total,
+    pageCount,
+    loading,
+    error,
+    kind,
+    status,
+    task,
+    detailLoading,
+    detailError,
+    loadTasks,
+    setFilters,
+    loadTask,
+    requestCancel,
+  };
 }
