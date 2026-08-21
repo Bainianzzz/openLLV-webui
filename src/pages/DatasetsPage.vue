@@ -10,6 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../components/ui/empty";
 import { Label } from "../components/ui/label";
 import {
   Select,
@@ -26,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import { Skeleton } from "../components/ui/skeleton";
 import { useDatasets } from "../features/datasets/useDatasets";
 
 const {
@@ -88,8 +91,8 @@ function formatBytes(value: number | null): string {
         >
       </CardHeader>
       <CardContent>
-        <form class="space-y-5" @submit.prevent="submit">
-          <div class="space-y-2">
+          <form class="flex flex-col gap-5" @submit.prevent="submit">
+          <div class="flex flex-col gap-2">
             <Label for="dataset-key">Configured dataset</Label>
             <Select
               v-model="form.datasetKey"
@@ -121,13 +124,12 @@ function formatBytes(value: number | null): string {
             </p>
           </div>
 
-          <label
-            class="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/20 p-4 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
+          <Label
+            class="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/20 p-4"
           >
-            <input
+            <Checkbox
               v-model="form.overwrite"
-              type="checkbox"
-              class="mt-0.5 size-4 rounded border-input accent-primary"
+              class="mt-0.5"
               aria-label="Overwrite existing dataset"
             />
             <span>
@@ -139,7 +141,7 @@ function formatBytes(value: number | null): string {
                 exists.</span
               >
             </span>
-          </label>
+          </Label>
 
           <Alert
             v-if="error"
@@ -172,7 +174,7 @@ function formatBytes(value: number | null): string {
     </Card>
 
     <Card v-if="task" class="xl:col-span-3">
-      <CardHeader class="flex-row items-start justify-between gap-4 space-y-0">
+      <CardHeader class="flex-row items-start justify-between gap-4">
         <div class="min-w-0">
           <CardTitle>Latest download</CardTitle>
           <CardDescription class="mt-2 truncate font-mono">{{
@@ -186,7 +188,7 @@ function formatBytes(value: number | null): string {
           {{ task.status }}
         </Badge>
       </CardHeader>
-      <CardContent class="space-y-4">
+      <CardContent class="flex flex-col gap-4">
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="rounded-lg border bg-muted/30 p-4">
             <p
@@ -232,19 +234,16 @@ function formatBytes(value: number | null): string {
       </CardContent>
     </Card>
 
-    <Card v-else class="flex min-h-64 flex-col justify-center xl:col-span-3">
-      <CardContent class="pt-6 text-center">
-        <p class="font-medium">No download submitted in this session</p>
-        <p class="mt-2 text-sm text-muted-foreground">
-          Choose a configured dataset to start an asynchronous download.
-        </p>
+    <Card v-else class="min-h-64 xl:col-span-3">
+      <CardContent class="flex min-h-64 items-center justify-center">
+        <Empty><EmptyHeader><EmptyTitle>No download submitted</EmptyTitle><EmptyDescription>Choose a configured dataset to start an asynchronous download.</EmptyDescription></EmptyHeader></Empty>
       </CardContent>
     </Card>
   </div>
 
   <Card class="mt-6 overflow-hidden">
     <CardHeader
-      class="gap-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0"
+      class="gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div>
         <CardTitle>Managed datasets</CardTitle>
@@ -285,15 +284,15 @@ function formatBytes(value: number | null): string {
             <TableRow v-if="loadingDatasets">
               <TableCell
                 colspan="5"
-                class="h-32 text-center text-muted-foreground"
-                >Loading managed datasets…</TableCell
+                class="h-32"
+                ><div class="flex flex-col gap-2 px-4"><Skeleton class="h-4 w-1/3" /><Skeleton class="h-4 w-2/3" /></div></TableCell
               >
             </TableRow>
             <TableRow v-else-if="!datasets.length">
               <TableCell
                 colspan="5"
-                class="h-32 text-center text-muted-foreground"
-                >No datasets match this filter.</TableCell
+                class="h-32"
+                ><Empty><EmptyHeader><EmptyTitle>No datasets found</EmptyTitle><EmptyDescription>No datasets match this filter.</EmptyDescription></EmptyHeader></Empty></TableCell
               >
             </TableRow>
             <TableRow v-for="dataset in datasets" v-else :key="dataset.id">

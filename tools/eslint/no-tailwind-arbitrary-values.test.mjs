@@ -13,4 +13,12 @@ describe("no-tailwind-arbitrary-values rule", () => {
     expect(tokensFromText("/api/tasks queued plain text")).toEqual([]);
     expect(arbitraryUtility("queued")).toBe(false);
   });
+
+  it("allows arbitrary variants used by shadcn primitives", () => {
+    expect(
+      tokensFromText(
+        "data-[state=checked]:bg-primary [&_svg]:size-4 group-[.active]:text-primary",
+      ),
+    ).toEqual([]);
+  });
 });

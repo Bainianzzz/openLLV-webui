@@ -34,7 +34,7 @@ const primaryNavigation = [
         </div>
       </div>
 
-      <nav class="flex-1 space-y-1 px-3 py-6" aria-label="Main navigation">
+      <nav class="flex flex-1 flex-col gap-1 px-3 py-6" aria-label="Main navigation">
         <p
           class="px-3 pb-3 text-2xs font-semibold uppercase tracking-label text-slate-400"
         >
@@ -55,7 +55,7 @@ const primaryNavigation = [
         </RouterLink>
       </nav>
 
-      <div class="space-y-1 border-t border-slate-100 p-3">
+      <div class="flex flex-col gap-1 border-t border-slate-100 p-3">
         <RouterLink
           to="/about"
           class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -109,7 +109,7 @@ const primaryNavigation = [
       </header>
 
       <main
-        class="mx-auto min-h-[calc(100dvh-4rem)] max-w-7xl px-5 py-8 sm:px-8 lg:px-12 lg:py-12"
+        class="mx-auto min-h-dvh max-w-7xl px-5 py-8 sm:px-8 lg:px-12 lg:py-12"
       >
         <slot />
       </main>

@@ -12,6 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Skeleton } from "../components/ui/skeleton";
 import { artifactContentUrl } from "@/api/tasks";
 import { useTasks } from "../features/tasks/useTasks";
 import type { TaskStatus } from "@/types/tasks";
@@ -95,18 +97,17 @@ onMounted(() => void load());
     <AlertTitle>Unable to load task</AlertTitle
     ><AlertDescription>{{ detailError }}</AlertDescription>
   </Alert>
-  <div
-    v-if="detailLoading && !task"
-    role="status"
-    aria-live="polite"
-    class="rounded-xl border bg-card p-8 text-center text-muted-foreground"
-  >
-    Loading task details…
-  </div>
+  <Card v-if="detailLoading && !task" role="status" aria-live="polite">
+    <CardContent class="flex flex-col gap-4 p-8">
+      <Skeleton class="h-6 w-48" />
+      <Skeleton class="h-4 w-full" />
+      <Skeleton class="h-4 w-2/3" />
+    </CardContent>
+  </Card>
   <div v-else-if="task" class="grid gap-6 lg:grid-cols-5">
-    <div class="space-y-6 lg:col-span-3">
+    <div class="flex flex-col gap-6 lg:col-span-3">
       <Card>
-        <CardHeader class="flex-row items-start justify-between gap-4 space-y-0"
+        <CardHeader class="flex-row items-start justify-between gap-4"
           ><div class="min-w-0">
             <CardTitle>Task status</CardTitle
             ><CardDescription class="mt-2">{{
@@ -155,7 +156,7 @@ onMounted(() => void load());
             {{ task.enhancement.method }}</CardDescription
           ></CardHeader
         >
-        <CardContent class="space-y-4"
+        <CardContent class="flex flex-col gap-4"
           ><div class="grid gap-4 sm:grid-cols-2">
             <div>
               <p
@@ -203,7 +204,7 @@ onMounted(() => void load());
             {{ task.training.device }}</CardDescription
           ></CardHeader
         >
-        <CardContent class="space-y-5"
+        <CardContent class="flex flex-col gap-5"
           ><div class="grid gap-4 sm:grid-cols-3">
             <div class="rounded-lg border bg-muted/30 p-4">
               <p
@@ -239,18 +240,22 @@ onMounted(() => void load());
               </p>
             </div>
           </div>
-          <div v-if="task.training.history?.length" class="space-y-2">
+          <div v-if="task.training.history?.length" class="flex flex-col gap-2">
             <p class="text-sm font-medium">Training history</p>
             <div
-              class="max-h-64 space-y-2 overflow-auto rounded-lg border bg-muted/20 p-3"
+              class="rounded-lg border bg-muted/20 p-3"
             >
-              <p
-                v-for="(entry, index) in task.training.history"
-                :key="index"
-                class="wrap-break-word font-mono text-xs text-muted-foreground"
-              >
-                {{ historyEntry(entry) }}
-              </p>
+              <ScrollArea class="h-64">
+                <div class="flex flex-col gap-2 pr-3">
+                  <p
+                    v-for="(entry, index) in task.training.history"
+                    :key="index"
+                    class="wrap-break-word font-mono text-xs text-muted-foreground"
+                  >
+                    {{ historyEntry(entry) }}
+                  </p>
+                </div>
+              </ScrollArea>
             </div>
           </div>
           <div class="flex flex-wrap gap-3">
@@ -311,7 +316,7 @@ onMounted(() => void load());
         ><CardDescription
           >Task ID and lifecycle controls</CardDescription
         ></CardHeader
-      ><CardContent class="space-y-5"
+      ><CardContent class="flex flex-col gap-5"
         ><p
           class="break-all rounded-lg bg-muted/40 p-3 font-mono text-xs text-muted-foreground"
         >
@@ -332,15 +337,10 @@ onMounted(() => void load());
           Cancellation requested. This page will continue checking until the
           worker finishes.
         </p>
-        <div
-          v-if="task.error_code || task.error_detail"
-          class="rounded-lg bg-destructive/5 p-4 text-sm text-destructive"
-        >
-          <p v-if="task.error_code" class="font-medium">
-            {{ task.error_code }}
-          </p>
-          <p v-if="task.error_detail" class="mt-1">{{ task.error_detail }}</p>
-        </div></CardContent
+        <Alert v-if="task.error_code || task.error_detail" variant="destructive">
+          <AlertTitle>{{ task.error_code || "Task failed" }}</AlertTitle>
+          <AlertDescription v-if="task.error_detail">{{ task.error_detail }}</AlertDescription>
+        </Alert></CardContent
       ></Card
     >
   </div>
