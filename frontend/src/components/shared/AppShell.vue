@@ -26,7 +26,7 @@ const primaryNavigation = [
           v-for="item in primaryNavigation"
           :key="item.to"
           :to="item.to"
-          class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
+          class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           active-class="bg-slate-100 font-semibold text-slate-950"
         >
           <span class="flex size-7 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500 group-[.router-link-active]:bg-white group-[.router-link-active]:text-slate-950">{{ item.label.slice(0, 1) }}</span>
@@ -35,7 +35,7 @@ const primaryNavigation = [
       </nav>
 
       <div class="space-y-1 border-t border-slate-100 p-3">
-        <RouterLink to="/about" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-slate-950" active-class="bg-slate-100 font-semibold text-slate-950">
+        <RouterLink to="/about" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" active-class="bg-slate-100 font-semibold text-slate-950">
           <span class="flex size-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold">?</span>
           <span>About openLLV</span>
         </RouterLink>
@@ -47,12 +47,22 @@ const primaryNavigation = [
     </aside>
 
     <div class="lg:pl-64">
-      <header class="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5 lg:hidden">
-        <RouterLink to="/enhance" class="flex items-center gap-2 text-sm font-semibold">
+      <header class="flex min-h-16 flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-200 bg-white px-5 py-3 lg:hidden">
+        <RouterLink to="/enhance" class="flex shrink-0 items-center gap-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
           <span class="flex size-8 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white">L</span>
           openLLV
         </RouterLink>
-        <RouterLink to="/tasks" class="text-xs font-medium text-slate-500">Tasks</RouterLink>
+        <nav class="min-w-0 flex-1 overflow-x-auto" aria-label="Mobile navigation">
+          <div class="flex min-w-max items-center gap-1">
+            <RouterLink
+              v-for="item in [...primaryNavigation, { label: 'About', to: '/about' }]"
+              :key="item.to"
+              :to="item.to"
+              class="rounded-lg px-2.5 py-2 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              active-class="bg-slate-100 font-semibold text-slate-950"
+            >{{ item.label }}</RouterLink>
+          </div>
+        </nav>
       </header>
 
       <main class="mx-auto min-h-[calc(100dvh-4rem)] max-w-7xl px-5 py-8 sm:px-8 lg:px-12 lg:py-12">

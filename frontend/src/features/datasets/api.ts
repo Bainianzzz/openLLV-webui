@@ -1,10 +1,11 @@
 import { apiClient } from "../../api/client";
-import type { DatasetDownloadTaskDetail, Page, TaskSummary } from "../../api/types";
+import type { Page, TaskSummary } from "../../api/types";
 import type {
   CreateDatasetDownloadRequest,
   Dataset,
   DatasetCatalog,
   DatasetDownloadTaskDetailResponse,
+  DatasetDownloadTaskDetailView,
   DatasetListParams,
 } from "./types";
 
@@ -32,7 +33,7 @@ export function getDatasetCatalog(signal?: AbortSignal) {
 export async function getDatasetDownloadTask(
   id: string,
   signal?: AbortSignal,
-): Promise<DatasetDownloadTaskDetail> {
+): Promise<DatasetDownloadTaskDetailView> {
   const detail = await apiClient.request<DatasetDownloadTaskDetailResponse>(
     `/tasks/${encodeURIComponent(id)}`,
     { signal },
@@ -41,5 +42,5 @@ export async function getDatasetDownloadTask(
   if (detail.kind !== "dataset_download" || !job) {
     throw new Error("The submitted task is not a dataset download task.");
   }
-  return { ...detail, kind: "dataset_download", job };
+  return { ...detail, kind: "dataset_download", job, dataset_download: job };
 }

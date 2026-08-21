@@ -78,7 +78,7 @@ void loadTasks();
         </Select>
       </div>
     </CardHeader>
-    <Alert v-if="error" class="mx-6 mb-4 border-destructive/30 bg-destructive/5 text-destructive">
+    <Alert v-if="error" role="alert" class="mx-6 mb-4 border-destructive/30 bg-destructive/5 text-destructive">
       <AlertTitle>Unable to load tasks</AlertTitle><AlertDescription>{{ error }}</AlertDescription>
     </Alert>
     <CardContent class="p-0">
@@ -99,7 +99,7 @@ void loadTasks();
           </TableBody>
         </Table>
       </div>
-      <div class="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Task pagination">
         <p class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</p>
         <div class="flex gap-2"><Button variant="outline" size="sm" :disabled="loading || page <= 1" @click="changePage(page - 1)">Previous</Button><Button variant="outline" size="sm" :disabled="loading || page >= pageCount" @click="changePage(page + 1)">Next</Button></div>
       </div>

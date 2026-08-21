@@ -79,7 +79,7 @@ export function useTasks() {
       detailError.value = cause instanceof Error ? cause.message : "Unable to load task";
       throw cause;
     } finally {
-      detailLoading.value = false;
+      if (detailController === controller) detailLoading.value = false;
     }
   }
 
