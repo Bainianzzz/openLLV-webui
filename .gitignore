@@ -1,28 +1,7 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.ruff_cache/
-.eggs/
-/build/
-/dist/
-
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Runtime data (SQLite database, uploaded and generated images)
-/data/
-/datasets/
-/checkpoints/
-/swanlog/
-
-# Local configuration (may contain secrets such as the SwanLab API key)
-config.yaml
-
-# Node
+# Node / Vite
 /node_modules/
+/dist/
+pnpm-debug.log*
 
 # IDE / OS
 .idea/
