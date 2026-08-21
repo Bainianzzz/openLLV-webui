@@ -15,7 +15,7 @@ env/
 data/
 datasets/
 checkpoints/
-**/swanlog/
+swanlog/
 
 # Local configuration (may contain secrets such as the SwanLab API key)
 config.yaml
