@@ -1,8 +1,17 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
-import type { TrainingTaskDetail } from "../../api/types";
-import { getArtifact } from "../artifacts/api";
-import { createTraining, getTrainingCatalog, getTrainingTask, listAvailableDatasets } from "./api";
-import type { CreateTrainingRequest, Dataset, TrainingCatalog } from "./types";
+import type { TrainingTaskDetail } from "@/types";
+import { getArtifact } from "@/api/artifacts";
+import {
+  createTraining,
+  getTrainingCatalog,
+  getTrainingTask,
+  listAvailableDatasets,
+} from "@/api/training";
+import type {
+  CreateTrainingRequest,
+  Dataset,
+  TrainingCatalog,
+} from "@/types/training";
 
 const FINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
 
@@ -31,7 +40,9 @@ export function useTraining() {
   let pollTimer: ReturnType<typeof setTimeout> | undefined;
   let activeTaskId = "";
 
-  const isFinished = computed(() => task.value ? FINAL_STATUSES.has(task.value.status) : false);
+  const isFinished = computed(() =>
+    task.value ? FINAL_STATUSES.has(task.value.status) : false,
+  );
   const history = computed(() => task.value?.job.history ?? []);
   const latestHistory = computed(() => history.value.at(-1));
 
@@ -57,7 +68,10 @@ export function useTraining() {
       form.datasetId = datasetResponse.items[0]?.id ?? "";
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;
-      error.value = cause instanceof Error ? cause.message : "Unable to load training options.";
+      error.value =
+        cause instanceof Error
+          ? cause.message
+          : "Unable to load training options.";
     } finally {
       loadingOptions.value = false;
     }
@@ -72,7 +86,10 @@ export function useTraining() {
       if (FINAL_STATUSES.has(detail.status)) {
         const checkpointId = detail.job.checkpoint_artifact_id;
         if (checkpointId) {
-          const artifact = await getArtifact(checkpointId, requestController.signal);
+          const artifact = await getArtifact(
+            checkpointId,
+            requestController.signal,
+          );
           checkpointUrl.value = artifact.content_url;
         }
         return;
@@ -80,17 +97,28 @@ export function useTraining() {
       pollTimer = setTimeout(() => void refreshTask(taskId), 1500);
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;
-      error.value = cause instanceof Error ? cause.message : "Unable to refresh training status.";
+      error.value =
+        cause instanceof Error
+          ? cause.message
+          : "Unable to refresh training status.";
     }
   }
 
   function validate(): string | null {
-    if (!form.model || !form.datasetId || !form.device) return "Choose a model, an available dataset, and a device.";
-    if (!Number.isInteger(form.epochs) || form.epochs < 1) return "Epochs must be a positive integer.";
-    if (!Number.isInteger(form.batchSize) || form.batchSize < 1) return "Batch size must be a positive integer.";
-    if (!(form.learningRate > 0)) return "Learning rate must be greater than zero.";
-    if (!Number.isInteger(form.resize) || form.resize < 1) return "Resize must be a positive integer.";
-    if (form.useSwanLab && (!form.swanlabProject.trim() || !form.swanlabExperiment.trim())) {
+    if (!form.model || !form.datasetId || !form.device)
+      return "Choose a model, an available dataset, and a device.";
+    if (!Number.isInteger(form.epochs) || form.epochs < 1)
+      return "Epochs must be a positive integer.";
+    if (!Number.isInteger(form.batchSize) || form.batchSize < 1)
+      return "Batch size must be a positive integer.";
+    if (!(form.learningRate > 0))
+      return "Learning rate must be greater than zero.";
+    if (!Number.isInteger(form.resize) || form.resize < 1)
+      return "Resize must be a positive integer.";
+    if (
+      form.useSwanLab &&
+      (!form.swanlabProject.trim() || !form.swanlabExperiment.trim())
+    ) {
       return "Enter both a SwanLab project and experiment name.";
     }
     return null;
@@ -120,19 +148,24 @@ export function useTraining() {
         resize: form.resize,
         device: form.device,
         num_workers: 0,
-        ...(form.useSwanLab ? {
-          swanlab: {
-            project: form.swanlabProject.trim(),
-            experiment: form.swanlabExperiment.trim(),
-          },
-        } : {}),
+        ...(form.useSwanLab
+          ? {
+              swanlab: {
+                project: form.swanlabProject.trim(),
+                experiment: form.swanlabExperiment.trim(),
+              },
+            }
+          : {}),
       };
       const created = await createTraining(request, requestController.signal);
       activeTaskId = created.id;
       await refreshTask(created.id);
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;
-      error.value = cause instanceof Error ? cause.message : "Unable to submit the training task.";
+      error.value =
+        cause instanceof Error
+          ? cause.message
+          : "Unable to submit the training task.";
     } finally {
       submitting.value = false;
     }

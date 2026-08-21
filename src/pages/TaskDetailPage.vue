@@ -5,22 +5,34 @@ import PageHeader from "../components/shared/PageHeader.vue";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { artifactContentUrl } from "../features/tasks/api";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { artifactContentUrl } from "@/api/tasks";
 import { useTasks } from "../features/tasks/useTasks";
-import type { TaskStatus } from "../features/tasks/types";
+import type { TaskStatus } from "@/types/tasks";
 
 const route = useRoute();
 const taskId = computed(() => String(route.params.id));
-const { task, detailLoading, detailError, loadTask, requestCancel } = useTasks();
+const { task, detailLoading, detailError, loadTask, requestCancel } =
+  useTasks();
 const cancelling = ref(false);
-const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 function formatDate(value: string | null): string {
   return value ? dateFormatter.format(new Date(value)) : "Not reported";
 }
 
-function statusVariant(status: TaskStatus): "default" | "secondary" | "destructive" | "outline" {
+function statusVariant(
+  status: TaskStatus,
+): "default" | "secondary" | "destructive" | "outline" {
   if (status === "failed") return "destructive";
   if (status === "succeeded") return "default";
   if (status === "cancelled") return "outline";
@@ -61,37 +73,278 @@ onMounted(() => void load());
 </script>
 
 <template>
-  <PageHeader eyebrow="Task detail" :title="task ? `${task.kind.replace('_', ' ')} task` : 'Task details'" :description="`Task ${taskId}`">
-    <template #actions><RouterLink to="/tasks" class="text-sm font-medium text-muted-foreground hover:text-foreground">Back to tasks</RouterLink></template>
+  <PageHeader
+    eyebrow="Task detail"
+    :title="task ? `${task.kind.replace('_', ' ')} task` : 'Task details'"
+    :description="`Task ${taskId}`"
+  >
+    <template #actions
+      ><RouterLink
+        to="/tasks"
+        class="text-sm font-medium text-muted-foreground hover:text-foreground"
+        >Back to tasks</RouterLink
+      ></template
+    >
   </PageHeader>
 
-  <Alert v-if="detailError" role="alert" class="mb-6 border-destructive/30 bg-destructive/5 text-destructive">
-    <AlertTitle>Unable to load task</AlertTitle><AlertDescription>{{ detailError }}</AlertDescription>
+  <Alert
+    v-if="detailError"
+    role="alert"
+    class="mb-6 border-destructive/30 bg-destructive/5 text-destructive"
+  >
+    <AlertTitle>Unable to load task</AlertTitle
+    ><AlertDescription>{{ detailError }}</AlertDescription>
   </Alert>
-  <div v-if="detailLoading && !task" role="status" aria-live="polite" class="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading task details…</div>
-  <div v-else-if="task" class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+  <div
+    v-if="detailLoading && !task"
+    role="status"
+    aria-live="polite"
+    class="rounded-xl border bg-card p-8 text-center text-muted-foreground"
+  >
+    Loading task details…
+  </div>
+  <div
+    v-else-if="task"
+    class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]"
+  >
     <div class="space-y-6">
       <Card>
-        <CardHeader class="flex-row items-start justify-between gap-4 space-y-0"><div class="min-w-0"><CardTitle>Task status</CardTitle><CardDescription class="mt-2">{{ task.message || 'No status message reported.' }}</CardDescription></div><Badge :variant="statusVariant(task.status)" class="shrink-0 capitalize">{{ task.status }}</Badge></CardHeader>
-        <CardContent class="grid gap-4 sm:grid-cols-3"><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created</p><p class="mt-2 text-sm">{{ formatDate(task.created_at) }}</p></div><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Started</p><p class="mt-2 text-sm">{{ formatDate(task.started_at) }}</p></div><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finished</p><p class="mt-2 text-sm">{{ formatDate(task.finished_at) }}</p></div></CardContent>
+        <CardHeader class="flex-row items-start justify-between gap-4 space-y-0"
+          ><div class="min-w-0">
+            <CardTitle>Task status</CardTitle
+            ><CardDescription class="mt-2">{{
+              task.message || "No status message reported."
+            }}</CardDescription>
+          </div>
+          <Badge
+            :variant="statusVariant(task.status)"
+            class="shrink-0 capitalize"
+            >{{ task.status }}</Badge
+          ></CardHeader
+        >
+        <CardContent class="grid gap-4 sm:grid-cols-3"
+          ><div>
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Created
+            </p>
+            <p class="mt-2 text-sm">{{ formatDate(task.created_at) }}</p>
+          </div>
+          <div>
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Started
+            </p>
+            <p class="mt-2 text-sm">{{ formatDate(task.started_at) }}</p>
+          </div>
+          <div>
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Finished
+            </p>
+            <p class="mt-2 text-sm">{{ formatDate(task.finished_at) }}</p>
+          </div></CardContent
+        >
       </Card>
 
       <Card v-if="task.kind === 'enhancement'">
-        <CardHeader><CardTitle>Enhancement</CardTitle><CardDescription>{{ task.enhancement.backend }} backend · {{ task.enhancement.method }}</CardDescription></CardHeader>
-        <CardContent class="space-y-4"><div class="grid gap-4 sm:grid-cols-2"><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Device</p><p class="mt-2 text-sm">{{ task.enhancement.device }}</p></div><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Input artifact</p><p class="mt-2 break-all font-mono text-xs">{{ task.enhancement.input_artifact_id }}</p></div></div><div class="flex flex-wrap gap-3"><a v-if="task.enhancement.output_artifact_id" :href="artifactContentUrl(task.enhancement.output_artifact_id)" target="_blank" rel="noreferrer" class="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Open output artifact</a><a :href="artifactContentUrl(task.enhancement.input_artifact_id)" target="_blank" rel="noreferrer" class="inline-flex h-10 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent">Open input artifact</a></div></CardContent>
+        <CardHeader
+          ><CardTitle>Enhancement</CardTitle
+          ><CardDescription
+            >{{ task.enhancement.backend }} backend ·
+            {{ task.enhancement.method }}</CardDescription
+          ></CardHeader
+        >
+        <CardContent class="space-y-4"
+          ><div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Device
+              </p>
+              <p class="mt-2 text-sm">{{ task.enhancement.device }}</p>
+            </div>
+            <div>
+              <p
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Input artifact
+              </p>
+              <p class="mt-2 break-all font-mono text-xs">
+                {{ task.enhancement.input_artifact_id }}
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <a
+              v-if="task.enhancement.output_artifact_id"
+              :href="artifactContentUrl(task.enhancement.output_artifact_id)"
+              target="_blank"
+              rel="noreferrer"
+              class="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >Open output artifact</a
+            ><a
+              :href="artifactContentUrl(task.enhancement.input_artifact_id)"
+              target="_blank"
+              rel="noreferrer"
+              class="inline-flex h-10 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent"
+              >Open input artifact</a
+            >
+          </div></CardContent
+        >
       </Card>
 
       <Card v-else-if="task.kind === 'training'">
-        <CardHeader><CardTitle>Training results</CardTitle><CardDescription>{{ task.training.model }} · {{ task.training.device }}</CardDescription></CardHeader>
-        <CardContent class="space-y-5"><div class="grid gap-4 sm:grid-cols-3"><div class="rounded-lg border bg-muted/30 p-4"><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">History</p><p class="mt-2 text-2xl font-semibold">{{ task.training.history?.length ?? 0 }} <span class="text-sm font-normal text-muted-foreground">entries</span></p></div><div class="rounded-lg border bg-muted/30 p-4"><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Best val loss</p><p class="mt-2 text-2xl font-semibold">{{ task.training.best_val_loss ?? 'Not reported' }}</p></div><div class="rounded-lg border bg-muted/30 p-4"><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Dataset</p><p class="mt-2 break-all font-mono text-xs">{{ task.training.dataset_id }}</p></div></div><div v-if="task.training.history?.length" class="space-y-2"><p class="text-sm font-medium">Training history</p><div class="max-h-64 space-y-2 overflow-auto rounded-lg border bg-muted/20 p-3"><p v-for="(entry, index) in task.training.history" :key="index" class="break-words font-mono text-xs text-muted-foreground">{{ historyEntry(entry) }}</p></div></div><div class="flex flex-wrap gap-3"><a v-if="task.training.checkpoint_artifact_id" :href="artifactContentUrl(task.training.checkpoint_artifact_id)" target="_blank" rel="noreferrer" class="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Open checkpoint artifact</a><a v-if="task.training.swanlab_url" :href="task.training.swanlab_url" target="_blank" rel="noreferrer" class="inline-flex h-10 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent">Open SwanLab run</a></div></CardContent>
+        <CardHeader
+          ><CardTitle>Training results</CardTitle
+          ><CardDescription
+            >{{ task.training.model }} ·
+            {{ task.training.device }}</CardDescription
+          ></CardHeader
+        >
+        <CardContent class="space-y-5"
+          ><div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-lg border bg-muted/30 p-4">
+              <p
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                History
+              </p>
+              <p class="mt-2 text-2xl font-semibold">
+                {{ task.training.history?.length ?? 0 }}
+                <span class="text-sm font-normal text-muted-foreground"
+                  >entries</span
+                >
+              </p>
+            </div>
+            <div class="rounded-lg border bg-muted/30 p-4">
+              <p
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Best val loss
+              </p>
+              <p class="mt-2 text-2xl font-semibold">
+                {{ task.training.best_val_loss ?? "Not reported" }}
+              </p>
+            </div>
+            <div class="rounded-lg border bg-muted/30 p-4">
+              <p
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Dataset
+              </p>
+              <p class="mt-2 break-all font-mono text-xs">
+                {{ task.training.dataset_id }}
+              </p>
+            </div>
+          </div>
+          <div v-if="task.training.history?.length" class="space-y-2">
+            <p class="text-sm font-medium">Training history</p>
+            <div
+              class="max-h-64 space-y-2 overflow-auto rounded-lg border bg-muted/20 p-3"
+            >
+              <p
+                v-for="(entry, index) in task.training.history"
+                :key="index"
+                class="break-words font-mono text-xs text-muted-foreground"
+              >
+                {{ historyEntry(entry) }}
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <a
+              v-if="task.training.checkpoint_artifact_id"
+              :href="artifactContentUrl(task.training.checkpoint_artifact_id)"
+              target="_blank"
+              rel="noreferrer"
+              class="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >Open checkpoint artifact</a
+            ><a
+              v-if="task.training.swanlab_url"
+              :href="task.training.swanlab_url"
+              target="_blank"
+              rel="noreferrer"
+              class="inline-flex h-10 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent"
+              >Open SwanLab run</a
+            >
+          </div></CardContent
+        >
       </Card>
 
       <Card v-else>
-        <CardHeader><CardTitle>Dataset download</CardTitle><CardDescription>{{ task.dataset_download.dataset_key }}</CardDescription></CardHeader>
-        <CardContent class="grid gap-4 sm:grid-cols-2"><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Overwrite</p><p class="mt-2 text-sm">{{ task.dataset_download.overwrite ? 'Enabled' : 'Disabled' }}</p></div><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Dataset ID</p><p class="mt-2 break-all font-mono text-xs">{{ task.dataset_download.dataset_id || 'Not created' }}</p></div></CardContent>
+        <CardHeader
+          ><CardTitle>Dataset download</CardTitle
+          ><CardDescription>{{
+            task.dataset_download.dataset_key
+          }}</CardDescription></CardHeader
+        >
+        <CardContent class="grid gap-4 sm:grid-cols-2"
+          ><div>
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Overwrite
+            </p>
+            <p class="mt-2 text-sm">
+              {{ task.dataset_download.overwrite ? "Enabled" : "Disabled" }}
+            </p>
+          </div>
+          <div>
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Dataset ID
+            </p>
+            <p class="mt-2 break-all font-mono text-xs">
+              {{ task.dataset_download.dataset_id || "Not created" }}
+            </p>
+          </div></CardContent
+        >
       </Card>
     </div>
 
-    <Card class="h-fit"><CardHeader><CardTitle>Actions</CardTitle><CardDescription>Task ID and lifecycle controls</CardDescription></CardHeader><CardContent class="space-y-5"><p class="break-all rounded-lg bg-muted/40 p-3 font-mono text-xs text-muted-foreground">{{ task.id }}</p><Button v-if="canCancel(task.status)" variant="destructive" class="w-full" :disabled="cancelling" @click="cancel">{{ cancelling ? 'Requesting cancellation…' : 'Cancel task' }}</Button><p v-if="task.status === 'cancelling'" class="text-sm text-muted-foreground">Cancellation requested. This page will continue checking until the worker finishes.</p><div v-if="task.error_code || task.error_detail" class="rounded-lg bg-destructive/5 p-4 text-sm text-destructive"><p v-if="task.error_code" class="font-medium">{{ task.error_code }}</p><p v-if="task.error_detail" class="mt-1">{{ task.error_detail }}</p></div></CardContent></Card>
+    <Card class="h-fit"
+      ><CardHeader
+        ><CardTitle>Actions</CardTitle
+        ><CardDescription
+          >Task ID and lifecycle controls</CardDescription
+        ></CardHeader
+      ><CardContent class="space-y-5"
+        ><p
+          class="break-all rounded-lg bg-muted/40 p-3 font-mono text-xs text-muted-foreground"
+        >
+          {{ task.id }}
+        </p>
+        <Button
+          v-if="canCancel(task.status)"
+          variant="destructive"
+          class="w-full"
+          :disabled="cancelling"
+          @click="cancel"
+          >{{ cancelling ? "Requesting cancellation…" : "Cancel task" }}</Button
+        >
+        <p
+          v-if="task.status === 'cancelling'"
+          class="text-sm text-muted-foreground"
+        >
+          Cancellation requested. This page will continue checking until the
+          worker finishes.
+        </p>
+        <div
+          v-if="task.error_code || task.error_detail"
+          class="rounded-lg bg-destructive/5 p-4 text-sm text-destructive"
+        >
+          <p v-if="task.error_code" class="font-medium">
+            {{ task.error_code }}
+          </p>
+          <p v-if="task.error_detail" class="mt-1">{{ task.error_detail }}</p>
+        </div></CardContent
+      ></Card
+    >
   </div>
 </template>

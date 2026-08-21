@@ -18,12 +18,7 @@ export interface Page<T> {
 
 export type TaskKind = "enhancement" | "training" | "dataset_download";
 export type TaskStatus =
-  | "queued"
-  | "running"
-  | "succeeded"
-  | "failed"
-  | "cancelling"
-  | "cancelled";
+  "queued" | "running" | "succeeded" | "failed" | "cancelling" | "cancelled";
 
 export interface TaskSummary {
   id: string;
@@ -87,11 +82,7 @@ export interface DatasetDownloadTaskResponse extends TaskSummary {
 }
 
 export type TaskDetail =
-  | EnhancementTaskResponse
-  | TrainingTaskResponse
-  | DatasetDownloadTaskResponse;
-
-// Feature adapters still expose their normalized legacy shape internally.
+  EnhancementTaskResponse | TrainingTaskResponse | DatasetDownloadTaskResponse;
 export type EnhancementTaskDetail = EnhancementTaskResponse;
 export type TrainingTaskDetail = TrainingTaskResponse;
 export type DatasetDownloadTaskDetail = DatasetDownloadTaskResponse;

@@ -1,11 +1,15 @@
 import { defineComponent } from "vue";
 import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TaskDetail } from "./types";
-import { getTask, listTasks } from "./api";
+import type { TaskDetail } from "@/types/tasks";
+import { getTask, listTasks } from "@/api/tasks";
 import { useTasks } from "./useTasks";
 
-vi.mock("./api", () => ({ cancelTask: vi.fn(), getTask: vi.fn(), listTasks: vi.fn() }));
+vi.mock("@/api/tasks", () => ({
+  cancelTask: vi.fn(),
+  getTask: vi.fn(),
+  listTasks: vi.fn(),
+}));
 
 const mockedGetTask = vi.mocked(getTask);
 const mockedListTasks = vi.mocked(listTasks);
@@ -61,7 +65,9 @@ describe("useTasks", () => {
   });
 
   it("polls a non-terminal task until the next result is terminal", async () => {
-    mockedGetTask.mockResolvedValueOnce(detail("running")).mockResolvedValueOnce(detail("failed"));
+    mockedGetTask
+      .mockResolvedValueOnce(detail("running"))
+      .mockResolvedValueOnce(detail("failed"));
     const wrapper = mountTasks();
 
     await composable.loadTask("task-1");
