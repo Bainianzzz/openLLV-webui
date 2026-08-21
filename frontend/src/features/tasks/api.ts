@@ -25,3 +25,7 @@ export function cancelTask(id: string, signal?: AbortSignal) {
     signal,
   });
 }
+
+export function artifactContentUrl(id: string): string {
+  return `/api/v1/artifacts/${encodeURIComponent(id)}/content`;
+}
