@@ -4,15 +4,19 @@ set -eu
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
 
-# Run backend checks only when the commit affects backend code, tests, or Python dependencies.
+# Run frontend checks when the commit affects the root frontend project.
 if git diff --cached --quiet -- \
-  backend \
-  test \
-  pyproject.toml \
-  uv.lock \
-  example.config.yaml
+  src \
+  components.json \
+  index.html \
+  package.json \
+  pnpm-lock.yaml \
+  vite.config.ts \
+  tsconfig.json \
+  tsconfig.app.json \
+  tsconfig.node.json
 then
   exit 0
 fi
 
-exec uv run pytest -q
+exec pnpm test
