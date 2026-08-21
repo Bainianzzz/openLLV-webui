@@ -78,8 +78,8 @@ function formatBytes(value: number | null): string {
     >
   </PageHeader>
 
-  <div class="grid gap-6 xl:grid-cols-[minmax(320px,0.75fr)_minmax(0,1.25fr)]">
-    <Card>
+  <div class="grid gap-6 xl:grid-cols-5">
+    <Card class="xl:col-span-2">
       <CardHeader>
         <CardTitle>Download dataset</CardTitle>
         <CardDescription
@@ -171,7 +171,7 @@ function formatBytes(value: number | null): string {
       </CardContent>
     </Card>
 
-    <Card v-if="task">
+    <Card v-if="task" class="xl:col-span-3">
       <CardHeader class="flex-row items-start justify-between gap-4 space-y-0">
         <div class="min-w-0">
           <CardTitle>Latest download</CardTitle>
@@ -232,7 +232,7 @@ function formatBytes(value: number | null): string {
       </CardContent>
     </Card>
 
-    <Card v-else class="flex min-h-64 flex-col justify-center">
+    <Card v-else class="flex min-h-64 flex-col justify-center xl:col-span-3">
       <CardContent class="pt-6 text-center">
         <p class="font-medium">No download submitted in this session</p>
         <p class="mt-2 text-sm text-muted-foreground">

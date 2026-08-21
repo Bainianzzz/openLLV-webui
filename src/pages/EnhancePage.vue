@@ -162,15 +162,14 @@ onUnmounted(() => {
     >
   </PageHeader>
 
-  <form
-    class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]"
-    @submit.prevent="submit"
-  >
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+  <form class="grid gap-6 xl:grid-cols-5" @submit.prevent="submit">
+    <section
+      class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 xl:col-span-3"
+    >
       <div class="flex items-start justify-between gap-4">
         <div>
           <p
-            class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"
+            class="text-xs font-semibold uppercase tracking-caps text-slate-400"
           >
             Input images
           </p>
@@ -224,10 +223,10 @@ onUnmounted(() => {
       </ul>
     </section>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6">
-      <p
-        class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"
-      >
+    <section
+      class="rounded-2xl border border-slate-200 bg-white p-6 xl:col-span-2"
+    >
+      <p class="text-xs font-semibold uppercase tracking-caps text-slate-400">
         Enhancement setup
       </p>
       <div class="mt-6 space-y-5">
@@ -338,9 +337,7 @@ onUnmounted(() => {
   >
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <p
-          class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"
-        >
+        <p class="text-xs font-semibold uppercase tracking-caps text-slate-400">
           Task status
         </p>
         <p class="mt-2 font-mono text-sm text-slate-700">{{ task.id }}</p>
