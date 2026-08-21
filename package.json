@@ -2,8 +2,6 @@
   "name": "openllv-webui",
   "private": true,
   "scripts": {
-    "dev": "uv run gradio app.py",
-    "app": "uv run python app.py",
     "prepare": "husky",
     "test": "uv run pytest"
   },
