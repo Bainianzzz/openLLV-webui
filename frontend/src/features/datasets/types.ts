@@ -40,7 +40,16 @@ export type DatasetDownloadTask = Pick<TaskSummary, "id" | "kind" | "status" | "
   kind: "dataset_download";
 };
 
-export type DatasetDownloadTaskDetailResponse = Omit<DatasetDownloadTaskDetail, "job"> & {
-  job?: DatasetDownloadTaskDetail["job"];
-  dataset_download?: DatasetDownloadTaskDetail["job"];
+type DatasetDownloadJob = DatasetDownloadTaskDetail["job"] & {
+  output_artifact_id: string | null;
+};
+
+export type DatasetDownloadTaskDetailResponse = Omit<DatasetDownloadTaskDetail, "job" | "dataset_download"> & {
+  job?: DatasetDownloadJob;
+  dataset_download?: DatasetDownloadJob;
+};
+
+export type DatasetDownloadTaskDetailView = Omit<DatasetDownloadTaskDetail, "job" | "dataset_download"> & {
+  job: DatasetDownloadJob;
+  dataset_download: DatasetDownloadJob;
 };

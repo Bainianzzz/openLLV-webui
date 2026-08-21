@@ -77,8 +77,8 @@ const {
           <CardDescription>Optional experiment tracking. Credentials remain on the server.</CardDescription>
         </CardHeader>
         <CardContent class="space-y-5">
-          <label class="flex cursor-pointer items-center gap-3 text-sm font-medium">
-            <input v-model="form.useSwanLab" type="checkbox" class="size-4 rounded border-input accent-primary">
+          <label class="flex cursor-pointer items-center gap-3 text-sm font-medium focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+            <input v-model="form.useSwanLab" type="checkbox" class="size-4 rounded border-input accent-primary" aria-label="Enable SwanLab for this run">
             Enable SwanLab for this run
           </label>
           <template v-if="form.useSwanLab">
@@ -86,12 +86,12 @@ const {
             <div class="space-y-2"><Label for="swanlab-experiment">Experiment</Label><Input id="swanlab-experiment" v-model="form.swanlabExperiment" placeholder="zero-dce-demo" required /></div>
           </template>
 
-          <Alert v-if="error" class="border-destructive/30 bg-destructive/5 text-destructive">
+          <Alert v-if="error" role="alert" class="border-destructive/30 bg-destructive/5 text-destructive">
             <AlertTitle>Training request failed</AlertTitle><AlertDescription>{{ error }}</AlertDescription>
           </Alert>
 
           <div class="flex gap-3">
-            <Button type="submit" class="flex-1" :disabled="loadingOptions || submitting || !datasets.length">{{ submitting ? 'Submitting…' : 'Start training' }}</Button>
+            <Button type="submit" class="flex-1" :disabled="loadingOptions || submitting || !datasets.length" :aria-busy="submitting">{{ submitting ? 'Submitting…' : 'Start training' }}</Button>
             <Button v-if="error && !task" type="button" variant="outline" @click="loadOptions">Retry</Button>
           </div>
         </CardContent>
@@ -101,7 +101,7 @@ const {
 
   <Card v-if="task" class="mt-6">
     <CardHeader class="flex-row items-start justify-between gap-4 space-y-0">
-      <div><CardTitle>Training run</CardTitle><CardDescription class="mt-2 font-mono">{{ task.id }}</CardDescription></div>
+      <div class="min-w-0"><CardTitle>Training run</CardTitle><CardDescription class="mt-2 break-all font-mono">{{ task.id }}</CardDescription></div>
       <Badge variant="secondary" class="capitalize">{{ task.status }}</Badge>
     </CardHeader>
     <CardContent class="space-y-5">

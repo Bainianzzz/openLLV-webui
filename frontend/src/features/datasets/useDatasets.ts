@@ -1,12 +1,11 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import type { DatasetDownloadTaskDetail } from "../../api/types";
 import {
   createDatasetDownload,
   getDatasetCatalog,
   getDatasetDownloadTask,
   listDatasets,
 } from "./api";
-import type { Dataset, DatasetStatus } from "./types";
+import type { Dataset, DatasetDownloadTaskDetailView, DatasetStatus } from "./types";
 
 const PAGE_SIZE = 10;
 const FINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
@@ -18,7 +17,7 @@ function isAbortError(cause: unknown): boolean {
 export function useDatasets() {
   const datasetKeys = ref<string[]>([]);
   const datasets = ref<Dataset[]>([]);
-  const task = ref<DatasetDownloadTaskDetail | null>(null);
+  const task = ref<DatasetDownloadTaskDetailView | null>(null);
   const form = reactive({ datasetKey: "", overwrite: false });
   const status = ref<DatasetStatus | "all">("all");
   const page = ref(1);

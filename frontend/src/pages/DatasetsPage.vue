@@ -79,21 +79,21 @@ function formatBytes(value: number | null): string {
             </p>
           </div>
 
-          <label class="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/20 p-4">
-            <input v-model="form.overwrite" type="checkbox" class="mt-0.5 size-4 rounded border-input accent-primary">
+          <label class="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/20 p-4 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+            <input v-model="form.overwrite" type="checkbox" class="mt-0.5 size-4 rounded border-input accent-primary" aria-label="Overwrite existing dataset">
             <span>
               <span class="block text-sm font-medium">Overwrite existing dataset</span>
               <span class="mt-1 block text-sm text-muted-foreground">Replace managed files when this dataset key already exists.</span>
             </span>
           </label>
 
-          <Alert v-if="error" class="border-destructive/30 bg-destructive/5 text-destructive">
+          <Alert v-if="error" role="alert" class="border-destructive/30 bg-destructive/5 text-destructive">
             <AlertTitle>Dataset request failed</AlertTitle>
             <AlertDescription>{{ error }}</AlertDescription>
           </Alert>
 
           <div class="flex gap-3">
-            <Button type="submit" class="flex-1" :disabled="loadingCatalog || submitting || !datasetKeys.length">
+            <Button type="submit" class="flex-1" :disabled="loadingCatalog || submitting || !datasetKeys.length" :aria-busy="submitting">
               {{ submitting ? 'Submitting…' : 'Start download' }}
             </Button>
             <Button v-if="error" type="button" variant="outline" @click="loadDatasets">Retry list</Button>
@@ -124,6 +124,9 @@ function formatBytes(value: number | null): string {
           </div>
         </div>
         <p v-if="task.message" class="text-sm text-muted-foreground">{{ task.message }}</p>
+        <p v-if="task.job.output_artifact_id" class="text-sm text-muted-foreground">
+          Output artifact: <span class="font-mono">{{ task.job.output_artifact_id }}</span>
+        </p>
         <p v-if="task.error_detail" class="rounded-md bg-destructive/5 p-3 text-sm text-destructive">
           {{ task.error_detail }}
         </p>
@@ -198,7 +201,7 @@ function formatBytes(value: number | null): string {
         </Table>
       </div>
 
-      <div class="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Dataset pagination">
         <p class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</p>
         <div class="flex gap-2">
           <Button variant="outline" size="sm" :disabled="loadingDatasets || page <= 1" @click="setPage(page - 1)">Previous</Button>

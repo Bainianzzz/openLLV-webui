@@ -35,49 +35,63 @@ export interface TaskSummary {
   finished_at: string | null;
 }
 
-export interface EnhancementTaskDetail extends TaskSummary {
+interface EnhancementTaskPayload {
+  backend: "traditional" | "deep";
+  method: string;
+  input_artifact_id: string;
+  checkpoint_artifact_id: string | null;
+  params: JsonObject;
+  device: string;
+  output_artifact_id: string | null;
+}
+
+interface TrainingTaskPayload {
+  model: string;
+  dataset_id: string;
+  hyperparameters: JsonObject;
+  device: string;
+  checkpoint_artifact_id: string | null;
+  history: unknown[] | null;
+  best_val_loss: number | null;
+  swanlab_url: string | null;
+}
+
+interface DatasetDownloadTaskPayload {
+  dataset_id: string | null;
+  dataset_key: string;
+  overwrite: boolean;
+}
+
+export interface EnhancementTaskResponse extends TaskSummary {
   kind: "enhancement";
-  job: {
-    backend: "traditional" | "deep";
-    method: string;
-    input_artifact_id: string;
-    checkpoint_artifact_id: string | null;
-    params: JsonObject;
-    device: string;
-    output_artifact_id: string | null;
-  };
+  enhancement: EnhancementTaskPayload;
+  job: EnhancementTaskPayload;
   error_code: string | null;
   error_detail: string | null;
 }
 
-export interface TrainingTaskDetail extends TaskSummary {
+export interface TrainingTaskResponse extends TaskSummary {
   kind: "training";
-  job: {
-    model: string;
-    dataset_id: string;
-    hyperparameters: JsonObject;
-    device: string;
-    checkpoint_artifact_id: string | null;
-    history: unknown[] | null;
-    best_val_loss: number | null;
-    swanlab_url: string | null;
-  };
+  training: TrainingTaskPayload;
+  job: TrainingTaskPayload;
   error_code: string | null;
   error_detail: string | null;
 }
 
-export interface DatasetDownloadTaskDetail extends TaskSummary {
+export interface DatasetDownloadTaskResponse extends TaskSummary {
   kind: "dataset_download";
-  job: {
-    dataset_id: string | null;
-    dataset_key: string;
-    overwrite: boolean;
-  };
+  dataset_download: DatasetDownloadTaskPayload;
+  job: DatasetDownloadTaskPayload;
   error_code: string | null;
   error_detail: string | null;
 }
 
 export type TaskDetail =
-  | EnhancementTaskDetail
-  | TrainingTaskDetail
-  | DatasetDownloadTaskDetail;
+  | EnhancementTaskResponse
+  | TrainingTaskResponse
+  | DatasetDownloadTaskResponse;
+
+// Feature adapters still expose their normalized legacy shape internally.
+export type EnhancementTaskDetail = EnhancementTaskResponse;
+export type TrainingTaskDetail = TrainingTaskResponse;
+export type DatasetDownloadTaskDetail = DatasetDownloadTaskResponse;

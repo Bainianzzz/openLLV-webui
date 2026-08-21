@@ -13,7 +13,7 @@ defineProps<{
       <h1 class="text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">{{ title }}</h1>
       <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500">{{ description }}</p>
     </div>
-    <div v-if="$slots.actions" class="shrink-0">
+    <div v-if="$slots.actions" class="max-w-full shrink-0">
       <slot name="actions" />
     </div>
   </header>
