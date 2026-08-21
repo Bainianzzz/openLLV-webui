@@ -128,9 +128,9 @@ Supervisor 不调用 openLLV，也不实现具体业务参数映射。
 三个 worker 进程使用同一个 `workers/process.py` 入口，通过启动参数或初始化 command 固定自己的 `worker_kind`：
 
 ```text
-python -m openllv_webui.workers.process --kind enhancement
-python -m openllv_webui.workers.process --kind training
-python -m openllv_webui.workers.process --kind dataset_download
+python -m backend.workers.process --kind enhancement
+python -m backend.workers.process --kind training
+python -m backend.workers.process --kind dataset_download
 ```
 
 实际启动由 `multiprocessing` 的 `spawn` 完成，不建议由 shell 命令启动。
@@ -155,7 +155,7 @@ worker process 不负责：
 ## 4. 文件布局
 
 ```text
-backend/openllv_webui/
+backend/
 `-- workers/
     |-- __init__.py
     |-- process.py              # 三个 worker 共用的子进程入口
