@@ -13,12 +13,12 @@ defineProps<{
     <div>
       <p
         v-if="eyebrow"
-        class="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600"
+        class="mb-3 text-3xs font-semibold uppercase tracking-eyebrow text-indigo-600"
       >
         {{ eyebrow }}
       </p>
       <h1
-        class="text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl"
+        class="text-3xl font-semibold tracking-display text-slate-950 sm:text-4xl"
       >
         {{ title }}
       </h1>

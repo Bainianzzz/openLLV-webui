@@ -49,11 +49,8 @@ const {
     >
   </PageHeader>
 
-  <form
-    class="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]"
-    @submit.prevent="submit"
-  >
-    <Card>
+  <form class="grid gap-6 xl:grid-cols-5" @submit.prevent="submit">
+    <Card class="xl:col-span-3">
       <CardHeader>
         <CardTitle>Training configuration</CardTitle>
         <CardDescription
@@ -170,7 +167,7 @@ const {
       </CardContent>
     </Card>
 
-    <div class="space-y-6">
+    <div class="space-y-6 xl:col-span-2">
       <Card>
         <CardHeader>
           <CardTitle>SwanLab monitoring</CardTitle>

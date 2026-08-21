@@ -103,11 +103,8 @@ onMounted(() => void load());
   >
     Loading task details…
   </div>
-  <div
-    v-else-if="task"
-    class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]"
-  >
-    <div class="space-y-6">
+  <div v-else-if="task" class="grid gap-6 lg:grid-cols-5">
+    <div class="space-y-6 lg:col-span-3">
       <Card>
         <CardHeader class="flex-row items-start justify-between gap-4 space-y-0"
           ><div class="min-w-0">
@@ -250,7 +247,7 @@ onMounted(() => void load());
               <p
                 v-for="(entry, index) in task.training.history"
                 :key="index"
-                class="break-words font-mono text-xs text-muted-foreground"
+                class="wrap-break-word font-mono text-xs text-muted-foreground"
               >
                 {{ historyEntry(entry) }}
               </p>
@@ -308,7 +305,7 @@ onMounted(() => void load());
       </Card>
     </div>
 
-    <Card class="h-fit"
+    <Card class="h-fit lg:col-span-2"
       ><CardHeader
         ><CardTitle>Actions</CardTitle
         ><CardDescription

@@ -36,7 +36,7 @@ const primaryNavigation = [
 
       <nav class="flex-1 space-y-1 px-3 py-6" aria-label="Main navigation">
         <p
-          class="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400"
+          class="px-3 pb-3 text-2xs font-semibold uppercase tracking-label text-slate-400"
         >
           Workspace
         </p>
@@ -48,7 +48,7 @@ const primaryNavigation = [
           active-class="bg-slate-100 font-semibold text-slate-950"
         >
           <span
-            class="flex size-7 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500 group-[.router-link-active]:bg-white group-[.router-link-active]:text-slate-950"
+            class="flex size-7 items-center justify-center rounded-lg bg-slate-100 text-3xs font-bold text-slate-500 group-[.router-link-active]:bg-white group-[.router-link-active]:text-slate-950"
             >{{ item.label.slice(0, 1) }}</span
           >
           <span>{{ item.label }}</span>
